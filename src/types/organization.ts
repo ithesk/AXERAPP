@@ -33,7 +33,7 @@ export interface Organization {
   owner_id: string;
 
   // Configuración
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   branding: OrganizationBranding;
 
   // Suscripción
@@ -137,7 +137,7 @@ export interface OrgSettings {
   entrada_prefix: string;
   entrada_sequence_start: number;
   entrada_default_status: string;
-  entrada_estados_custom: any[] | null;
+  entrada_estados_custom: string[] | null;
 
   // Facturación
   tax_id: string | null;
@@ -152,7 +152,7 @@ export interface OrgSettings {
   email_from_name: string | null;
   email_from_address: string | null;
   email_signature: string | null;
-  email_templates: Record<string, any>;
+  email_templates: Record<string, unknown>;
 
   // Branding
   logo_url: string | null;
@@ -166,13 +166,13 @@ export interface OrgSettings {
   print_paper_size: 'letter' | 'a4' | 'ticket';
 
   // Campos personalizados
-  custom_fields_entradas: any[];
-  custom_fields_ventas: any[];
-  custom_fields_compras: any[];
-  custom_fields_inventario: any[];
+  custom_fields_entradas: Record<string, unknown>[];
+  custom_fields_ventas: Record<string, unknown>[];
+  custom_fields_compras: Record<string, unknown>[];
+  custom_fields_inventario: Record<string, unknown>[];
 
   // Integraciones
-  integrations: Record<string, any>;
+  integrations: Record<string, unknown>;
 
   // Seguridad
   require_2fa: boolean;
@@ -234,7 +234,7 @@ export interface CreateOrganizationData {
 export interface UpdateOrganizationData {
   name?: string;
   slug?: string;
-  settings?: Record<string, any>;
+  settings?: Record<string, unknown>;
   branding?: Partial<OrganizationBranding>;
   timezone?: string;
   locale?: string;
@@ -250,7 +250,7 @@ export interface UpdateMemberRoleData {
   role: OrgRole;
 }
 
-export interface UpdateOrgSettingsData extends Partial<Omit<OrgSettings, 'id' | 'org_id' | 'created_at' | 'updated_at'>> {}
+export type UpdateOrgSettingsData = Partial<Omit<OrgSettings, 'id' | 'org_id' | 'created_at' | 'updated_at'>>;
 
 // =====================================================
 // Permission Helpers

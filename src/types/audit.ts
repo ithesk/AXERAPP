@@ -37,8 +37,8 @@ export interface AuditLog {
   entity_id: string | null;
 
   // Datos del cambio
-  old_data: Record<string, any> | null;
-  new_data: Record<string, any> | null;
+  old_data: Record<string, unknown> | null;
+  new_data: Record<string, unknown> | null;
 
   // Metadata adicional
   metadata: AuditMetadata;
@@ -56,7 +56,7 @@ export interface AuditMetadata {
   user_agent?: string;
   location?: string;
   device?: string;
-  [key: string]: any;
+  [key: string]: string | undefined;
 }
 
 // =====================================================
