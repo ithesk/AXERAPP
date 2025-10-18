@@ -172,6 +172,7 @@ export function useEntradas(filters?: EntradasFilters) {
 
   useEffect(() => {
     fetchEntradas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     currentOrg?.id, // NUEVO: Recargar cuando cambie la organización
     filters?.estado,

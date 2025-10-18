@@ -45,34 +45,34 @@ const normalizeModules = (modules: unknown): ContactAvailability[] => {
   return filtered.length > 0 ? filtered : [CONTACT_ALL_AVAILABILITY];
 };
 
-const normalizeAddress = (contact: any): ContactAddress => ({
-  line1: contact.address_line1 ?? null,
-  line2: contact.address_line2 ?? null,
-  city: contact.address_city ?? null,
-  state: contact.address_state ?? null,
-  postal_code: contact.address_postal_code ?? null,
-  country: contact.address_country ?? null,
+const normalizeAddress = (contact: Record<string, unknown>): ContactAddress => ({
+  line1: (contact.address_line1 as string | null) ?? null,
+  line2: (contact.address_line2 as string | null) ?? null,
+  city: (contact.address_city as string | null) ?? null,
+  state: (contact.address_state as string | null) ?? null,
+  postal_code: (contact.address_postal_code as string | null) ?? null,
+  country: (contact.address_country as string | null) ?? null,
 });
 
-const normalizeContact = (contact: any): Contact => ({
-  id: contact.id,
-  org_id: contact.org_id,
-  name: contact.name,
-  phone: contact.phone ?? null,
-  mobile: contact.mobile ?? null,
-  email: contact.email ?? null,
-  is_client: contact.is_client ?? false,
-  is_vendor: contact.is_vendor ?? false,
-  tax_id: contact.tax_id ?? null,
-  website: contact.website ?? null,
-  avatar_url: contact.avatar_url ?? null,
-  tags: Array.isArray(contact.tags) ? contact.tags : [],
+const normalizeContact = (contact: Record<string, unknown>): Contact => ({
+  id: contact.id as string,
+  org_id: contact.org_id as string,
+  name: contact.name as string,
+  phone: (contact.phone as string | null) ?? null,
+  mobile: (contact.mobile as string | null) ?? null,
+  email: (contact.email as string | null) ?? null,
+  is_client: (contact.is_client as boolean) ?? false,
+  is_vendor: (contact.is_vendor as boolean) ?? false,
+  tax_id: (contact.tax_id as string | null) ?? null,
+  website: (contact.website as string | null) ?? null,
+  avatar_url: (contact.avatar_url as string | null) ?? null,
+  tags: Array.isArray(contact.tags) ? (contact.tags as string[]) : [],
   address: normalizeAddress(contact),
-  available_in_modules: normalizeModules(contact.available_in_modules),
-  notes: contact.notes ?? null,
-  created_at: contact.created_at,
-  updated_at: contact.updated_at,
-  deleted_at: contact.deleted_at ?? null,
+  available_in_modules: normalizeModules(contact.available_in_modules as string[] | string),
+  notes: (contact.notes as string | null) ?? null,
+  created_at: contact.created_at as string,
+  updated_at: contact.updated_at as string,
+  deleted_at: (contact.deleted_at as string | null) ?? null,
 });
 
 const mapAddressToColumns = (address?: ContactAddress) => ({
