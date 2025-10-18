@@ -85,7 +85,10 @@ export default function ContactModal({
     );
   }, [formState.address_country]);
 
-  const availableStates = selectedCountry?.states ?? [];
+  const availableStates = useMemo(() => {
+    return selectedCountry?.states ?? [];
+  }, [selectedCountry]);
+
   const hasStatesForCountry = availableStates.length > 0;
 
   const filteredCountries = useMemo(() => {

@@ -374,7 +374,7 @@ export default function ContactAutocomplete({
                       </span>
                       {searchTerm && (
                         <div className="text-xs text-gray-500 dark:text-gray-400">
-                          "{searchTerm}"
+                          &quot;{searchTerm}&quot;
                         </div>
                       )}
                     </div>

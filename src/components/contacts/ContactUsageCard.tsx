@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import ContactSelect from "./ContactSelect";
 import ContactModal from "./ContactModal";
 import { useContacts } from "@/hooks/useContacts";
@@ -77,9 +78,11 @@ const ContactUsageCard: React.FC<ContactUsageCardProps> = ({
             <div className="flex items-start gap-4">
               <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-brand-100 text-lg font-semibold text-brand-600 dark:bg-brand-500/10 dark:text-brand-200">
                 {selectedContact.avatar_url ? (
-                  <img
+                  <Image
                     src={selectedContact.avatar_url}
                     alt={selectedContact.name}
+                    width={48}
+                    height={48}
                     className="h-full w-full object-cover"
                   />
                 ) : (

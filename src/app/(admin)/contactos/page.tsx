@@ -282,20 +282,21 @@ export default function ContactosPage() {
                     </TableRow>
                   ) : (
                     filteredContacts.map((contact) => {
-                      const addressSegments = [
-                        contact.address?.line1,
-                        contact.address?.line2,
-                        contact.address?.city,
-                        contact.address?.state,
-                        contact.address?.postal_code,
-                        contact.address?.country,
-                      ].filter((segment): segment is string => Boolean(segment && segment.trim()));
+                      // Variables comentadas - pueden usarse en el futuro
+                      // const addressSegments = [
+                      //   contact.address?.line1,
+                      //   contact.address?.line2,
+                      //   contact.address?.city,
+                      //   contact.address?.state,
+                      //   contact.address?.postal_code,
+                      //   contact.address?.country,
+                      // ].filter((segment): segment is string => Boolean(segment && segment.trim()));
 
-                      const modulesLabel = contact.available_in_modules.includes(CONTACT_ALL_AVAILABILITY)
-                        ? "Todos los módulos"
-                        : contact.available_in_modules
-                            .map((module) => CONTACT_MODULE_LABELS[module as ContactModule] ?? module)
-                            .join(", ");
+                      // const modulesLabel = contact.available_in_modules.includes(CONTACT_ALL_AVAILABILITY)
+                      //   ? "Todos los módulos"
+                      //   : contact.available_in_modules
+                      //       .map((module) => CONTACT_MODULE_LABELS[module as ContactModule] ?? module)
+                      //       .join(", ");
 
                       return (
                         <TableRow key={contact.id}>
