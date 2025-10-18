@@ -97,7 +97,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
       // Extraer organizaciones
       const orgs =
         memberships
-          ?.map((m: any) => m.organization)
+          ?.map((m: Record<string, unknown>) => m.organization as Organization)
           .filter(Boolean) || [];
 
       setUserOrganizations(orgs);
@@ -124,14 +124,15 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
       if (targetOrgId) {
         const org = orgs.find((o: Organization) => o.id === targetOrgId);
-        const membership = memberships?.find((m: any) => m.org_id === targetOrgId);
+        const membership = memberships?.find((m: Record<string, unknown>) => m.org_id === targetOrgId);
 
         setCurrentOrg(org || null);
         setCurrentMembership(membership || null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error loading organizations:', err);
-      setError(err.message);
+      const errorMessage = err instanceof Error ? err.message : 'Error loading organizations';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -171,13 +172,15 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
         // Refrescar la página para recargar datos
         router.refresh();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error switching organization:', err);
-        setError(err.message);
+        const errorMessage = err instanceof Error ? err.message : 'Error switching organization';
+        setError(errorMessage);
         throw err;
       }
     },
-    [supabase, userOrganizations, router]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [supabase, userOrganizations]
   );
 
   // =====================================================
@@ -228,9 +231,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         router.refresh();
 
         return newOrg;
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error creating organization:', err);
-        setError(err.message);
+        const errorMessage = err instanceof Error ? err.message : 'Error creating organization';
+        setError(errorMessage);
         throw err;
       }
     },
@@ -257,9 +261,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         setCurrentOrg({ ...currentOrg, ...updates });
 
         await loadOrganizations();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error updating organization:', err);
-        setError(err.message);
+        const errorMessage = err instanceof Error ? err.message : 'Error updating organization';
+        setError(errorMessage);
         throw err;
       }
     },
@@ -292,9 +297,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         }
 
         await loadOrganizations();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error deleting organization:', err);
-        setError(err.message);
+        const errorMessage = err instanceof Error ? err.message : 'Error deleting organization';
+        setError(errorMessage);
         throw err;
       }
     },
@@ -333,7 +339,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const canAccessModule = useCallback(
     (module: string): boolean => {
       if (!currentOrg) return false;
-      return currentOrg.modules_enabled.includes(module as any);
+      return currentOrg.modules_enabled.includes(module as Module);
     },
     [currentOrg]
   );
@@ -383,7 +389,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
 
 // Wrapper para importar dinámicamente el OnboardingWizard
 function OnboardingWizardWrapper() {
-  const [OnboardingWizard, setOnboardingWizard] = useState<any>(null);
+  const [OnboardingWizard, setOnboardingWizard] = useState<React.ComponentType | null>(null);
 
   useEffect(() => {
     import('@/components/organizations/OnboardingWizard').then((mod) => {

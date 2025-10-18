@@ -12,7 +12,7 @@ import Image from "next/image";
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
   const { profile, loading, updateProfile, uploadAvatar } = useUser();
-  const [saving, setSaving] = useState(false);
+  // const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 

@@ -7,7 +7,7 @@ import { OrgSwitcher } from "@/components/organizations/OrgSwitcher";
 import { useSidebar } from "@/context/SidebarContext";
 import Image from "next/image";
 import Link from "next/link";
-import React, { useState ,useEffect,useRef} from "react";
+import React, { useState, useEffect } from "react";
 
 const AppHeader: React.FC = () => {
   const [isApplicationMenuOpen, setApplicationMenuOpen] = useState(false);

@@ -48,9 +48,9 @@ export function OrgSwitcher() {
       setShowCreateDialog(false);
       setCreateError(null);
       e.currentTarget.reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating organization:", error);
-      const errorMessage = error?.message || error?.error?.message || "Error al crear la organización";
+      const errorMessage = error instanceof Error ? error.message : "Error al crear la organización";
       setCreateError(errorMessage);
     } finally {
       setCreateLoading(false);
