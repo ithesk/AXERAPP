@@ -113,6 +113,14 @@ export default function ProductsList() {
     setStockMenuOpen(false);
   };
 
+  const handleResetFilters = () => {
+    setFilterType("all");
+    setFilterLowStock(false);
+    setTypeSortOrder(null);
+    setTypeMenuOpen(false);
+    setStockMenuOpen(false);
+  };
+
   const handleCreateProduct = () => {
     setEditingProduct(null);
     setIsModalOpen(true);
@@ -215,13 +223,9 @@ export default function ProductsList() {
       </div>
 
       {/* Tabla */}
-      <div className="overflow-hidden bg-white border rounded-xl dark:bg-white/[0.03] dark:border-gray-800">
+      <div className="relative overflow-visible bg-white border rounded-xl dark:bg-white/[0.03] dark:border-gray-800">
         {loading ? (
           <div className="text-center py-12">Cargando...</div>
-        ) : filteredProducts.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No se encontraron productos
-          </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
@@ -250,7 +254,7 @@ export default function ProductsList() {
                     </button>
 
                     {typeMenuOpen && (
-                      <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                      <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
                         <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
                           Filtrar por tipo
                         </div>
@@ -333,7 +337,7 @@ export default function ProductsList() {
                     </button>
 
                     {stockMenuOpen && (
-                      <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                      <div className="absolute right-0 z-50 mt-2 w-48 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
                         <div className="py-1">
                           <button
                             type="button"
@@ -364,57 +368,77 @@ export default function ProductsList() {
               </tr>
             </thead>
             <tbody className="divide-y dark:divide-gray-800">
-              {filteredProducts.map((product) => {
-                const stockStatus = getStockStatus(product);
-                const displayName = getProductDisplayName(product);
-                const categoryName =
-                  typeof product.category === "string"
-                    ? product.category
-                    : product.category?.name;
+              {filteredProducts.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400"
+                  >
+                    <div className="flex flex-col items-center gap-3">
+                      <span>No se encontraron productos con los filtros actuales.</span>
+                      <button
+                        type="button"
+                        onClick={handleResetFilters}
+                        className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                      >
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                filteredProducts.map((product) => {
+                  const stockStatus = getStockStatus(product);
+                  const displayName = getProductDisplayName(product);
+                  const categoryName =
+                    typeof product.category === "string"
+                      ? product.category
+                      : product.category?.name;
 
-                return (
-                  <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium">{displayName}</p>
-                        {categoryName && (
-                          <p className="text-xs text-gray-500">{categoryName}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
-                        {PRODUCT_TYPE_LABELS[product.product_type]}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">{product.sku || "-"}</td>
-                    <td className="px-4 py-3 text-right font-medium">{formatPrice(product.sale_price)}</td>
-                    <td className="px-4 py-3 text-center">
-                      {product.track_inventory ? formatStock(product) : "N/A"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditProduct(product)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:text-gray-400 dark:hover:border-brand-600 dark:hover:text-brand-400"
-                          aria-label={`Editar ${product.name}`}
-                        >
-                          <PencilIcon className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteProduct(product)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-300 hover:text-red-600 dark:border-gray-800 dark:text-gray-400 dark:hover:border-red-500 dark:hover:text-red-400"
-                          aria-label={`Eliminar ${product.name}`}
-                        >
-                          <TrashBinIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                  return (
+                    <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                      <td className="px-4 py-3">
+                        <div>
+                          <p className="font-medium">{displayName}</p>
+                          {categoryName && (
+                            <p className="text-xs text-gray-500">{categoryName}</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-xs px-2 py-1 rounded bg-gray-100 dark:bg-gray-800">
+                          {PRODUCT_TYPE_LABELS[product.product_type]}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-gray-600">{product.sku || "-"}</td>
+                      <td className="px-4 py-3 text-right font-medium">{formatPrice(product.sale_price)}</td>
+                      <td className="px-4 py-3 text-center">
+                        {product.track_inventory ? formatStock(product) : "N/A"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditProduct(product)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-gray-800 dark:text-gray-400 dark:hover:border-brand-600 dark:hover:text-brand-400"
+                            aria-label={`Editar ${product.name}`}
+                          >
+                            <PencilIcon className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteProduct(product)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 text-gray-500 transition-colors hover:border-red-300 hover:text-red-600 dark:border-gray-800 dark:text-gray-400 dark:hover:border-red-500 dark:hover:text-red-400"
+                            aria-label={`Eliminar ${product.name}`}
+                          >
+                            <TrashBinIcon className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         )}

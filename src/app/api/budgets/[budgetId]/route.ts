@@ -4,11 +4,11 @@ import { NextRequest, NextResponse } from "next/server";
 // GET /api/budgets/[budgetId] - Obtener presupuesto completo con items
 export async function GET(
   request: NextRequest,
-  { params }: { params: { budgetId: string } }
+  { params }: { params: Promise<{ budgetId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { budgetId } = params;
+    const { budgetId } = await params;
 
     if (!budgetId) {
       return NextResponse.json(
@@ -65,11 +65,11 @@ export async function GET(
 // DELETE /api/budgets/[budgetId] - Eliminar presupuesto
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { budgetId: string } }
+  { params }: { params: Promise<{ budgetId: string }> }
 ) {
   try {
     const supabase = await createClient();
-    const { budgetId } = params;
+    const { budgetId } = await params;
 
     if (!budgetId) {
       return NextResponse.json(

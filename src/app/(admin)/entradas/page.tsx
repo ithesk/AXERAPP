@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useEntradas } from "@/hooks/useEntradas";
 import type { Entrada, EstadoEntrada, EntradasFilters } from "@/types/entradas";
 import NuevaEntradaModal from "@/components/entradas/NuevaEntradaModal";
@@ -8,6 +8,32 @@ import EditarEntradaModal from "@/components/entradas/EditarEntradaModal";
 import DetalleEntradaModalOld from "@/components/entradas/DetalleEntradaModalOptimized";
 import DetalleEntradaModalWithBudget from "@/components/entradas/DetalleEntradaModalWithBudget";
 import { PlusIcon } from "@/icons";
+import { Filter, ChevronDown, Check, ArrowUpDown, Settings2 } from "lucide-react";
+
+// Definir columnas disponibles
+type ColumnKey = "id" | "cliente" | "telefono" | "email" | "modelo" | "imei" | "problema" | "accesorios" | "fecha" | "estado" | "tecnico";
+
+interface ColumnConfig {
+  key: ColumnKey;
+  label: string;
+  defaultVisible: boolean;
+  sortable: boolean;
+  sortField?: SortField;
+}
+
+const AVAILABLE_COLUMNS: ColumnConfig[] = [
+  { key: "id", label: "ID", defaultVisible: true, sortable: true, sortField: "id" },
+  { key: "cliente", label: "Cliente", defaultVisible: true, sortable: true, sortField: "cliente" },
+  { key: "telefono", label: "Teléfono", defaultVisible: true, sortable: false },
+  { key: "email", label: "Email", defaultVisible: false, sortable: false },
+  { key: "modelo", label: "Dispositivo", defaultVisible: true, sortable: true, sortField: "modelo" },
+  { key: "imei", label: "IMEI/SN", defaultVisible: false, sortable: false },
+  { key: "problema", label: "Problema", defaultVisible: true, sortable: true, sortField: "problema" },
+  { key: "accesorios", label: "Accesorios", defaultVisible: false, sortable: false },
+  { key: "fecha", label: "Fecha", defaultVisible: true, sortable: true, sortField: "fecha" },
+  { key: "estado", label: "Estado", defaultVisible: true, sortable: true, sortField: "estado" },
+  { key: "tecnico", label: "Técnico", defaultVisible: false, sortable: false },
+];
 
 const ESTADO_ORDER: EstadoEntrada[] = [
   "Cotización",
@@ -259,18 +285,130 @@ const getEstadoSummaryStyle = (estado: EstadoEntrada) => {
   }
 };
 
+type SortField = "fecha" | "cliente" | "id" | "modelo" | "estado" | "problema" | null;
+type SortOrder = "asc" | "desc" | null;
+
 export default function EntradasPage() {
-  const [filters, setFilters] = useState<EntradasFilters>({
-    search: "",
-    estado: "Todos",
-  });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterEstado, setFilterEstado] = useState<EstadoEntrada | "Todos">("Todos");
+  const [filterFechaDesde, setFilterFechaDesde] = useState("");
+  const [filterFechaHasta, setFilterFechaHasta] = useState("");
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortOrder, setSortOrder] = useState<SortOrder>(null);
+
   const [isNuevaModalOpen, setIsNuevaModalOpen] = useState(false);
   const [editingEntrada, setEditingEntrada] = useState<Entrada | null>(null);
   const [detalleEntrada, setDetalleEntrada] = useState<Entrada | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
+  const [estadoMenuOpen, setEstadoMenuOpen] = useState(false);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+
+  // Estado para columnas visibles - inicializar desde localStorage o usar defaults
+  const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("entradas-visible-columns");
+      if (saved) {
+        try {
+          return new Set(JSON.parse(saved));
+        } catch {
+          // Si hay error, usar defaults
+        }
+      }
+    }
+    // Defaults
+    return new Set(AVAILABLE_COLUMNS.filter(col => col.defaultVisible).map(col => col.key));
+  });
+
+  const estadoMenuRef = useRef<HTMLDivElement>(null);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
+  const columnsMenuRef = useRef<HTMLDivElement>(null);
+
+  // Construir filtros para el hook
+  const filters: EntradasFilters = useMemo(() => ({
+    search: searchQuery,
+    estado: filterEstado,
+    fecha_desde: filterFechaDesde || undefined,
+    fecha_hasta: filterFechaHasta || undefined,
+  }), [searchQuery, filterEstado, filterFechaDesde, filterFechaHasta]);
+
   const { entradas, loading, error, deleteEntrada, updateEntrada, refetchEntradas } = useEntradas(filters);
+
+  // Cerrar menús al hacer clic afuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (estadoMenuRef.current && !estadoMenuRef.current.contains(event.target as Node)) {
+        setEstadoMenuOpen(false);
+      }
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setSortMenuOpen(false);
+      }
+      if (columnsMenuRef.current && !columnsMenuRef.current.contains(event.target as Node)) {
+        setColumnsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Guardar preferencias de columnas en localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("entradas-visible-columns", JSON.stringify([...visibleColumns]));
+    }
+  }, [visibleColumns]);
+
+  // Aplicar ordenamiento local
+  const sortedEntradas = useMemo(() => {
+    let sorted = [...entradas];
+
+    if (sortField && sortOrder) {
+      sorted.sort((a, b) => {
+        let aValue: string | number = "";
+        let bValue: string | number = "";
+
+        switch (sortField) {
+          case "fecha":
+            aValue = new Date(a.fecha_entrada).getTime();
+            bValue = new Date(b.fecha_entrada).getTime();
+            break;
+          case "cliente":
+            aValue = a.nombre_cliente.toLowerCase();
+            bValue = b.nombre_cliente.toLowerCase();
+            break;
+          case "id":
+            aValue = a.id_reparacion.toLowerCase();
+            bValue = b.id_reparacion.toLowerCase();
+            break;
+          case "modelo":
+            aValue = a.modelo.toLowerCase();
+            bValue = b.modelo.toLowerCase();
+            break;
+          case "estado":
+            // Ordenar por el índice en ESTADO_ORDER para mantener el orden lógico
+            aValue = ESTADO_ORDER.indexOf(normalizeEstadoEntrada(a.estado));
+            bValue = ESTADO_ORDER.indexOf(normalizeEstadoEntrada(b.estado));
+            break;
+          case "problema":
+            aValue = a.problema.toLowerCase();
+            bValue = b.problema.toLowerCase();
+            break;
+        }
+
+        if (typeof aValue === "number" && typeof bValue === "number") {
+          return sortOrder === "asc" ? aValue - bValue : bValue - aValue;
+        } else {
+          const comparison = aValue.toString().localeCompare(bValue.toString());
+          return sortOrder === "asc" ? comparison : -comparison;
+        }
+      });
+    }
+
+    return sorted;
+  }, [entradas, sortField, sortOrder]);
 
   // Calcular estadísticas
   const stats = useMemo(() => {
@@ -282,16 +420,16 @@ export default function EntradasPage() {
       {} as Record<EstadoEntrada, number>
     );
 
-    entradas.forEach((entrada) => {
+    sortedEntradas.forEach((entrada) => {
       const estadoNormalizado = normalizeEstadoEntrada(entrada.estado);
       counts[estadoNormalizado] = (counts[estadoNormalizado] ?? 0) + 1;
     });
 
     return {
-      total: entradas.length,
+      total: sortedEntradas.length,
       counts,
     };
-  }, [entradas]);
+  }, [sortedEntradas]);
 
   const handleDelete = async (id: string) => {
     if (confirm("¿Estás seguro de eliminar esta entrada?")) {
@@ -341,10 +479,192 @@ export default function EntradasPage() {
     });
   };
 
+  // Handlers para filtros
+  const handleEstadoFilterSelect = (estado: EstadoEntrada | "Todos") => {
+    setFilterEstado(estado);
+    setEstadoMenuOpen(false);
+  };
+
+  const handleSortChange = (field: SortField, order: SortOrder) => {
+    setSortField(field);
+    setSortOrder(order);
+    setSortMenuOpen(false);
+  };
+
+  // Handler para ordenar al hacer clic en encabezado de columna
+  const handleColumnHeaderClick = (field: SortField) => {
+    if (sortField === field) {
+      // Si ya está ordenando por este campo, alternar el orden
+      if (sortOrder === "asc") {
+        setSortOrder("desc");
+      } else if (sortOrder === "desc") {
+        // Si ya está en desc, quitar el ordenamiento
+        setSortField(null);
+        setSortOrder(null);
+      }
+    } else {
+      // Si es un nuevo campo, empezar con asc
+      setSortField(field);
+      setSortOrder("asc");
+    }
+  };
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setFilterEstado("Todos");
+    setFilterFechaDesde("");
+    setFilterFechaHasta("");
+    setSortField(null);
+    setSortOrder(null);
+  };
+
+  // Handlers para columnas
+  const toggleColumn = (columnKey: ColumnKey) => {
+    setVisibleColumns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(columnKey)) {
+        // No permitir ocultar todas las columnas
+        if (newSet.size > 1) {
+          newSet.delete(columnKey);
+        }
+      } else {
+        newSet.add(columnKey);
+      }
+      return newSet;
+    });
+  };
+
+  const resetColumns = () => {
+    const defaults = new Set(AVAILABLE_COLUMNS.filter(col => col.defaultVisible).map(col => col.key));
+    setVisibleColumns(defaults);
+  };
+
+  const showAllColumns = () => {
+    setVisibleColumns(new Set(AVAILABLE_COLUMNS.map(col => col.key)));
+  };
+
+  // Obtener columnas visibles ordenadas según AVAILABLE_COLUMNS
+  const visibleColumnsConfig = useMemo(() => {
+    return AVAILABLE_COLUMNS.filter(col => visibleColumns.has(col.key));
+  }, [visibleColumns]);
+
+  // Contar filtros activos
   const activeFiltersCount = [
-    filters.search && filters.search.length > 0,
-    filters.estado && filters.estado !== "Todos",
+    searchQuery && searchQuery.length > 0,
+    filterEstado && filterEstado !== "Todos",
+    filterFechaDesde,
+    filterFechaHasta,
   ].filter(Boolean).length;
+
+  const isEstadoFilterActive = filterEstado !== "Todos";
+  const isSortActive = sortField !== null && sortOrder !== null;
+
+  // Función helper para renderizar el contenido de cada celda
+  const renderCellContent = (entrada: Entrada, columnKey: ColumnKey) => {
+    switch (columnKey) {
+      case "id":
+        return (
+          <div className="font-mono text-sm font-semibold text-brand-600 dark:text-brand-400">
+            {entrada.id_reparacion}
+          </div>
+        );
+      case "cliente":
+        return (
+          <div className="text-sm font-medium text-gray-900 dark:text-white">
+            {entrada.nombre_cliente}
+          </div>
+        );
+      case "telefono":
+        return (
+          <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            {entrada.telefono}
+          </div>
+        );
+      case "email":
+        return (
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {entrada.contact_id || "-"}
+          </div>
+        );
+      case "modelo":
+        return (
+          <div className="text-sm text-gray-900 dark:text-white">
+            {entrada.modelo}
+          </div>
+        );
+      case "imei":
+        return (
+          <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+            {entrada.imei_sn || "-"}
+          </div>
+        );
+      case "problema":
+        return (
+          <div className="max-w-xs text-sm text-gray-600 truncate dark:text-gray-400">
+            {entrada.problema}
+          </div>
+        );
+      case "accesorios":
+        return (
+          <div className="max-w-xs text-sm text-gray-600 truncate dark:text-gray-400">
+            {entrada.accesorios || "-"}
+          </div>
+        );
+      case "fecha":
+        return (
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {formatDate(entrada.fecha_entrada)}
+          </div>
+        );
+      case "estado":
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border rounded-full ${getEstadoBadgeClass(
+              entrada.estado
+            )}`}
+          >
+            {getEstadoIcon(entrada.estado)}
+            {entrada.estado}
+          </span>
+        );
+      case "tecnico":
+        return (
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {entrada.tecnico_asignado || "-"}
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Componente helper para renderizar los iconos de ordenamiento
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+
+    if (sortOrder === "asc") {
+      return (
+        <svg className="w-4 h-4 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    }
+
+    return (
+      <svg className="w-4 h-4 text-brand-600 dark:text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -395,7 +715,7 @@ export default function EntradasPage() {
             <div
               key={estado}
               className={`relative overflow-hidden transition-all border rounded-xl ${style.borderClass} ${style.backgroundClass} p-4 hover:shadow-lg cursor-pointer`}
-              onClick={() => setFilters({ ...filters, estado })}
+              onClick={() => setFilterEstado(estado)}
             >
               <div className="flex items-center gap-3">
                 <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${style.iconBgClass} shadow-lg`}>
@@ -430,6 +750,14 @@ export default function EntradasPage() {
             )}
           </div>
           <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={handleResetFilters}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 transition-all rounded-lg border border-gray-200 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+              >
+                Limpiar filtros
+              </button>
+            )}
             <button
               onClick={() => setViewMode("table")}
               className={`p-2 rounded-lg transition-all ${
@@ -459,9 +787,9 @@ export default function EntradasPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_200px_140px_140px_auto_auto]">
           {/* Search */}
-          <div className="md:col-span-5">
+          <div>
             <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
               Búsqueda
             </label>
@@ -482,15 +810,13 @@ export default function EntradasPage() {
               <input
                 type="text"
                 placeholder="Cliente, teléfono, modelo, ID..."
-                value={filters.search}
-                onChange={(e) =>
-                  setFilters({ ...filters, search: e.target.value })
-                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full py-2.5 pl-10 pr-10 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
               />
-              {filters.search && (
+              {searchQuery && (
                 <button
-                  onClick={() => setFilters({ ...filters, search: "" })}
+                  onClick={() => setSearchQuery("")}
                   className="absolute p-1 text-gray-400 transition-colors transform -translate-y-1/2 rounded-full right-2 top-1/2 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,42 +827,273 @@ export default function EntradasPage() {
             </div>
           </div>
 
-          {/* Estado Filter - Simple Pills */}
-          <div className="md:col-span-7">
+          {/* Estado Filter - Dropdown */}
+          <div>
             <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
               Estado
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="relative" ref={estadoMenuRef}>
               <button
-                onClick={() => setFilters({ ...filters, estado: "Todos" })}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  filters.estado === "Todos"
-                    ? "bg-gradient-to-r from-gray-700 to-gray-800 text-white shadow-lg shadow-gray-500/30"
-                    : "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                type="button"
+                onClick={() => setEstadoMenuOpen(!estadoMenuOpen)}
+                className={`flex items-center justify-between w-full px-4 py-2.5 text-sm font-medium border-2 rounded-xl transition-all ${
+                  isEstadoFilterActive
+                    ? "border-brand-500 text-brand-600 bg-brand-50 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500"
+                    : "border-gray-200 text-gray-700 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
                 }`}
               >
-                Todos
+                <span className="flex items-center gap-2">
+                  <Filter className="w-4 h-4" />
+                  {filterEstado === "Todos" ? "Todos los estados" : filterEstado}
+                </span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${estadoMenuOpen ? "rotate-180" : ""}`} />
               </button>
-              {ESTADO_ORDER.map((estado) => {
-                const style = getEstadoFilterStyle(estado);
-                const isActive = filters.estado === estado;
-                const icon = React.cloneElement(getEstadoIcon(estado), {
-                  className: "w-3.5 h-3.5",
-                });
 
-                return (
-                  <button
-                    key={estado}
-                    onClick={() => setFilters({ ...filters, estado })}
-                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                      isActive ? style.activeClass : style.inactiveClass
-                    }`}
-                  >
-                    {icon}
-                    {estado}
-                  </button>
-                );
-              })}
+              {estadoMenuOpen && (
+                <div className="absolute left-0 right-0 z-50 mt-2 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => handleEstadoFilterSelect("Todos")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Todos los estados</span>
+                      {filterEstado === "Todos" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    {ESTADO_ORDER.map((estado) => (
+                      <button
+                        key={estado}
+                        type="button"
+                        onClick={() => handleEstadoFilterSelect(estado)}
+                        className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                      >
+                        <span className="flex items-center gap-2">
+                          {React.cloneElement(getEstadoIcon(estado), { className: "w-3.5 h-3.5" })}
+                          {estado}
+                        </span>
+                        {filterEstado === estado && (
+                          <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Fecha Desde */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+              Desde
+            </label>
+            <input
+              type="date"
+              value={filterFechaDesde}
+              onChange={(e) => setFilterFechaDesde(e.target.value)}
+              className="w-full py-2.5 px-3 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+            />
+          </div>
+
+          {/* Fecha Hasta */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+              Hasta
+            </label>
+            <input
+              type="date"
+              value={filterFechaHasta}
+              onChange={(e) => setFilterFechaHasta(e.target.value)}
+              className="w-full py-2.5 px-3 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+            />
+          </div>
+
+          {/* Columnas */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+              Columnas
+            </label>
+            <div className="relative" ref={columnsMenuRef}>
+              <button
+                type="button"
+                onClick={() => setColumnsMenuOpen(!columnsMenuOpen)}
+                className="flex items-center justify-center w-full px-3 py-2.5 text-sm font-medium border-2 rounded-xl transition-all border-gray-200 text-gray-700 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                title="Personalizar columnas"
+              >
+                <Settings2 className="w-4 h-4" />
+              </button>
+
+              {columnsMenuOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-64 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                    Personalizar columnas
+                  </div>
+                  <div className="py-1 max-h-80 overflow-y-auto">
+                    {AVAILABLE_COLUMNS.map((column) => (
+                      <button
+                        key={column.key}
+                        type="button"
+                        onClick={() => toggleColumn(column.key)}
+                        className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                        disabled={visibleColumns.has(column.key) && visibleColumns.size === 1}
+                      >
+                        <span className={visibleColumns.has(column.key) && visibleColumns.size === 1 ? "opacity-50" : ""}>
+                          {column.label}
+                        </span>
+                        {visibleColumns.has(column.key) && (
+                          <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="border-t border-gray-200 dark:border-gray-700 p-2 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        showAllColumns();
+                        setColumnsMenuOpen(false);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 transition-all rounded-lg border border-gray-200 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                    >
+                      Todas
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        resetColumns();
+                        setColumnsMenuOpen(false);
+                      }}
+                      className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 transition-all rounded-lg border border-gray-200 hover:border-brand-300 hover:text-brand-600 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500 dark:hover:text-brand-400"
+                    >
+                      Por defecto
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Sort / Ordenar */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+              Ordenar
+            </label>
+            <div className="relative" ref={sortMenuRef}>
+              <button
+                type="button"
+                onClick={() => setSortMenuOpen(!sortMenuOpen)}
+                className={`flex items-center justify-center w-full px-3 py-2.5 text-sm font-medium border-2 rounded-xl transition-all ${
+                  isSortActive
+                    ? "border-brand-500 text-brand-600 bg-brand-50 dark:bg-brand-500/10 dark:text-brand-400 dark:border-brand-500"
+                    : "border-gray-200 text-gray-700 bg-white hover:border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
+                }`}
+                title="Ordenar"
+              >
+                <ArrowUpDown className="w-4 h-4" />
+              </button>
+
+              {sortMenuOpen && (
+                <div className="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
+                  <div className="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">
+                    Ordenar por
+                  </div>
+                  <div className="py-1">
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("fecha", "desc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Fecha (más reciente)</span>
+                      {sortField === "fecha" && sortOrder === "desc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("fecha", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Fecha (más antigua)</span>
+                      {sortField === "fecha" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("cliente", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Cliente (A → Z)</span>
+                      {sortField === "cliente" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("cliente", "desc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Cliente (Z → A)</span>
+                      {sortField === "cliente" && sortOrder === "desc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("id", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>ID (A → Z)</span>
+                      {sortField === "id" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("modelo", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Modelo (A → Z)</span>
+                      {sortField === "modelo" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("estado", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Estado (orden lógico)</span>
+                      {sortField === "estado" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange("problema", "asc")}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Problema (A → Z)</span>
+                      {sortField === "problema" && sortOrder === "asc" && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                    <button
+                      type="button"
+                      onClick={() => handleSortChange(null, null)}
+                      className="flex w-full items-center justify-between gap-2 px-4 py-2 text-sm text-gray-700 transition hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800/80"
+                    >
+                      <span>Sin ordenar</span>
+                      {sortField === null && (
+                        <Check className="h-4 w-4 text-brand-500 dark:text-brand-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -559,7 +1116,7 @@ export default function EntradasPage() {
             <span className="font-medium">Error: {error}</span>
           </div>
         </div>
-      ) : entradas.length === 0 ? (
+      ) : sortedEntradas.length === 0 ? (
         <div className="py-24 text-center border border-gray-200 rounded-2xl bg-white/50 dark:bg-white/[0.02] dark:border-gray-800">
           <svg
             className="w-20 h-20 mx-auto mb-4 text-gray-300 dark:text-gray-600"
@@ -597,82 +1154,39 @@ export default function EntradasPage() {
             <table className="w-full">
               <thead className="bg-gray-50/80 dark:bg-gray-800/80 backdrop-blur-sm">
                 <tr>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    ID
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Contacto
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Dispositivo
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Problema
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Fecha
-                  </th>
-                  <th className="px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300">
-                    Estado
-                  </th>
+                  {visibleColumnsConfig.map((column) => (
+                    <th
+                      key={column.key}
+                      className={`px-6 py-4 text-xs font-bold tracking-wider text-left text-gray-600 uppercase dark:text-gray-300 ${
+                        column.sortable
+                          ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors group"
+                          : ""
+                      }`}
+                      onClick={() => column.sortable && column.sortField && handleColumnHeaderClick(column.sortField)}
+                    >
+                      <div className="flex items-center gap-2">
+                        {column.label}
+                        {column.sortable && column.sortField && <SortIcon field={column.sortField} />}
+                      </div>
+                    </th>
+                  ))}
                   <th className="px-6 py-4 text-xs font-bold tracking-wider text-right text-gray-600 uppercase dark:text-gray-300">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 dark:divide-gray-800">
-                {entradas.map((entrada) => (
+                {sortedEntradas.map((entrada) => (
                   <tr
                     key={entrada.id}
                     onClick={() => setDetalleEntrada(entrada)}
                     className="transition-colors cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
                   >
-                    <td className="px-6 py-4">
-                      <div className="font-mono text-sm font-semibold text-brand-600 dark:text-brand-400">
-                        {entrada.id_reparacion}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">
-                        {entrada.nombre_cliente}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        {entrada.telefono}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 dark:text-white">
-                        {entrada.modelo}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="max-w-xs text-sm text-gray-600 truncate dark:text-gray-400">
-                        {entrada.problema}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDate(entrada.fecha_entrada)}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border rounded-full ${getEstadoBadgeClass(
-                          entrada.estado
-                        )}`}
-                      >
-                        {getEstadoIcon(entrada.estado)}
-                        {entrada.estado}
-                      </span>
-                    </td>
+                    {visibleColumnsConfig.map((column) => (
+                      <td key={column.key} className="px-6 py-4">
+                        {renderCellContent(entrada, column.key)}
+                      </td>
+                    ))}
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -735,7 +1249,7 @@ export default function EntradasPage() {
       ) : (
         /* Cards View */
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {entradas.map((entrada) => (
+          {sortedEntradas.map((entrada) => (
             <div
               key={entrada.id}
               onClick={() => setDetalleEntrada(entrada)}
