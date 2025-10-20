@@ -455,7 +455,7 @@ export default function ProductModal({
 
     const tagIds = formState.tags
       .map((tag) => tag.id)
-      .filter((id): id is string => Boolean(id) && isUuid(id));
+      .filter((id): id is string => typeof id === "string" && isUuid(id));
     const isService = formState.product_type === "service";
     const trackInventory = !isService && formState.track_inventory;
     const hasMaxStockValue = formState.max_stock.trim() !== "";

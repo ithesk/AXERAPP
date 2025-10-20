@@ -79,6 +79,7 @@ export interface OrgMember {
   org_id: string;
   user_id: string;
   invited_role: OrgRole;
+  role: OrgRole | null;
   status: OrgMemberStatus;
 
   // Invitación
@@ -110,6 +111,7 @@ export interface Invitation {
   org_id: string;
   email: string;
   invited_role: OrgRole;
+  role?: OrgRole | null;
   invited_by: string;
   token: string;
   expires_at: string;
@@ -242,12 +244,12 @@ export interface UpdateOrganizationData {
 
 export interface InviteMemberData {
   email: string;
-  invited_role: OrgRole;
+  role: OrgRole;
 }
 
 export interface UpdateMemberRoleData {
   member_id: string;
-  invited_role: OrgRole;
+  role: OrgRole;
 }
 
 export type UpdateOrgSettingsData = Partial<Omit<OrgSettings, 'id' | 'org_id' | 'created_at' | 'updated_at'>>;

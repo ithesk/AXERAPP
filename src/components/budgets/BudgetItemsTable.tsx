@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
-import type { BudgetItem } from "@/types/budgets";
-import type { Product } from "@/types/products";
+import type { BudgetItem, BudgetItemType } from "@/types/budgets";
+import type { Product, CreateProductData } from "@/types/products";
 import { useProducts } from "@/hooks/useProducts";
 import { useToast } from "@/context/ToastContext";
 import EditableCell from "./EditableCell";
@@ -37,6 +37,7 @@ export default function BudgetItemsTable({
 
   // Agregar nueva fila
   const handleAddRow = useCallback(() => {
+    const timestamp = new Date().toISOString();
     const newItem: BudgetItem = {
       id: `temp-${Date.now()}`,
       budget_id: "",
@@ -44,10 +45,13 @@ export default function BudgetItemsTable({
       description: "",
       quantity: 1,
       unit_price: 0,
-      discount_percentage: 0,
-      tax_percentage: 0,
       subtotal: 0,
       sort_order: items.length,
+      discount_percentage: 0,
+      tax_percentage: 0,
+      created_at: timestamp,
+      updated_at: timestamp,
+      display_order: items.length,
       is_custom: true,
       product_id: null,
     };
@@ -70,10 +74,14 @@ export default function BudgetItemsTable({
       const item = { ...newItems[index], [field]: value };
 
       // Recalcular subtotal
-      const subtotalBeforeDiscount = item.quantity * item.unit_price;
-      const discountAmount = subtotalBeforeDiscount * (item.discount_percentage / 100);
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const discountRate = Number(item.discount_percentage ?? 0);
+      const taxRate = Number(item.tax_percentage ?? 0);
+      const subtotalBeforeDiscount = quantity * unitPrice;
+      const discountAmount = subtotalBeforeDiscount * (discountRate / 100);
       const subtotalAfterDiscount = subtotalBeforeDiscount - discountAmount;
-      const taxAmount = subtotalAfterDiscount * (item.tax_percentage / 100);
+      const taxAmount = subtotalAfterDiscount * (taxRate / 100);
       item.subtotal = subtotalAfterDiscount + taxAmount;
 
       newItems[index] = item;
@@ -96,16 +104,21 @@ export default function BudgetItemsTable({
 
       item.product_id = product.id;
       item.is_custom = false;
-      item.item_type = product.product_type;
+      const mappedType: BudgetItemType = product.product_type === "service" ? "labor" : "part";
+      item.item_type = mappedType;
       item.description = getProductDisplayName(product);
       item.unit_price = product.sale_price;
       item.product = product;
 
       // Recalcular subtotal
-      const subtotalBeforeDiscount = item.quantity * item.unit_price;
-      const discountAmount = subtotalBeforeDiscount * (item.discount_percentage / 100);
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const discountRate = Number(item.discount_percentage ?? 0);
+      const taxRate = Number(item.tax_percentage ?? 0);
+      const subtotalBeforeDiscount = quantity * unitPrice;
+      const discountAmount = subtotalBeforeDiscount * (discountRate / 100);
       const subtotalAfterDiscount = subtotalBeforeDiscount - discountAmount;
-      const taxAmount = subtotalAfterDiscount * (item.tax_percentage / 100);
+      const taxAmount = subtotalAfterDiscount * (taxRate / 100);
       item.subtotal = subtotalAfterDiscount + taxAmount;
 
       newItems[index] = item;
@@ -124,7 +137,7 @@ export default function BudgetItemsTable({
 
   // Crear producto desde modal
   const handleCreateProductFromModal = useCallback(
-    async (productData: any) => {
+    async (productData: CreateProductData) => {
       const result = await createProduct(productData);
 
       if (result.success && result.data && pendingItemIndex !== null) {
@@ -133,9 +146,12 @@ export default function BudgetItemsTable({
         setIsProductModalOpen(false);
         setPendingItemIndex(null);
         setProductModalInitialName("");
-      } else {
-        showToast("error", "Error", result.error || "No se pudo crear el producto");
+        return { success: true };
       }
+
+      const errorMessage = result.error || "No se pudo crear el producto";
+      showToast("error", "Error", errorMessage);
+      return { success: false, error: errorMessage };
     },
     [createProduct, showToast, handleProductSelect, pendingItemIndex]
   );
@@ -143,21 +159,30 @@ export default function BudgetItemsTable({
   // Calcular totales
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => {
-      const itemSubtotal = item.quantity * item.unit_price;
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const itemSubtotal = quantity * unitPrice;
       return sum + itemSubtotal;
     }, 0);
 
     const discount = items.reduce((sum, item) => {
-      const itemSubtotal = item.quantity * item.unit_price;
-      const itemDiscount = itemSubtotal * (item.discount_percentage / 100);
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const discountRate = Number(item.discount_percentage ?? 0);
+      const itemSubtotal = quantity * unitPrice;
+      const itemDiscount = itemSubtotal * (discountRate / 100);
       return sum + itemDiscount;
     }, 0);
 
     const tax = items.reduce((sum, item) => {
-      const itemSubtotal = item.quantity * item.unit_price;
-      const itemDiscount = itemSubtotal * (item.discount_percentage / 100);
+      const quantity = Number(item.quantity) || 0;
+      const unitPrice = Number(item.unit_price) || 0;
+      const discountRate = Number(item.discount_percentage ?? 0);
+      const taxRate = Number(item.tax_percentage ?? 0);
+      const itemSubtotal = quantity * unitPrice;
+      const itemDiscount = itemSubtotal * (discountRate / 100);
       const subtotalAfterDiscount = itemSubtotal - itemDiscount;
-      const itemTax = subtotalAfterDiscount * (item.tax_percentage / 100);
+      const itemTax = subtotalAfterDiscount * (taxRate / 100);
       return sum + itemTax;
     }, 0);
 
@@ -169,7 +194,7 @@ export default function BudgetItemsTable({
   // Validar stock para productos
   const getStockWarning = useCallback(
     (item: BudgetItem): string | null => {
-      if (!item.product || item.item_type === "service") return null;
+      if (!item.product || item.item_type === "labor") return null;
       if (!item.product.track_inventory) return null;
 
       const availableStock = item.product.current_stock;
@@ -274,13 +299,13 @@ export default function BudgetItemsTable({
                       <select
                         value={item.item_type}
                         onChange={(e) =>
-                          handleUpdateItem(index, "item_type", e.target.value as "part" | "service")
+                          handleUpdateItem(index, "item_type", e.target.value as BudgetItemType)
                         }
                         disabled={disabled || !item.is_custom}
                         className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded bg-white dark:bg-gray-900 dark:border-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="part">Pieza</option>
-                        <option value="service">Servicio</option>
+                        <option value="labor">Servicio</option>
                       </select>
                     </td>
 
@@ -317,7 +342,7 @@ export default function BudgetItemsTable({
                     {/* Descuento % */}
                     <td className="px-3 py-2">
                       <EditableCell
-                        value={item.discount_percentage}
+                        value={item.discount_percentage ?? 0}
                         onChange={(value) =>
                           handleUpdateItem(
                             index,
@@ -337,7 +362,7 @@ export default function BudgetItemsTable({
                     {/* IVA % */}
                     <td className="px-3 py-2">
                       <EditableCell
-                        value={item.tax_percentage}
+                        value={item.tax_percentage ?? 0}
                         onChange={(value) =>
                           handleUpdateItem(
                             index,
@@ -434,7 +459,7 @@ export default function BudgetItemsTable({
         mode="create"
         initialName={productModalInitialName}
         initialType={productModalInitialType}
-        onSubmit={handleCreateProductFromModal}
+        onSubmit={(data) => handleCreateProductFromModal(data as CreateProductData)}
       />
     </div>
   );

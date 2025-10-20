@@ -16,29 +16,36 @@ export default function SignUpForm() {
   const [isChecked, setIsChecked] = useState(false);
   
   // Estado adicional para Supabase
-  const [formData, setFormData] = useState({
-    fname: '',
-    lname: '',
-    email: '',
-    password: ''
+  type SignUpFormData = {
+    fname: string;
+    lname: string;
+    email: string;
+    password: string;
+  };
+
+  const [formData, setFormData] = useState<SignUpFormData>({
+    fname: "",
+    lname: "",
+    email: "",
+    password: "",
   });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
   const supabase = createClient();
 
   // Manejar cambios en el formulario
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name as keyof SignUpFormData]: value,
     }));
   };
 
   // Función para manejar el registro con Supabase
-  const handleSignUp = async (e) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     console.log("1. Iniciando proceso de registro");
@@ -106,20 +113,26 @@ export default function SignUpForm() {
       alert("¡Revisa tu correo para confirmar tu cuenta!");
       router.push('/signin');
       
-    } catch (error) {
-      console.error("9. Error durante el registro:", error);
-      
-      let mensajeError = error.message || "Error durante el registro";
-      
-      // Traducciones adicionales
-      if (error.message?.includes("rate limited")) {
-        mensajeError = "Demasiados intentos. Por favor, intenta más tarde";
-      } else if (error.message?.includes("Database error")) {
-        mensajeError = "Error en la base de datos. Por favor, contacta al administrador.";
-      } else if (error.message?.includes("Network error")) {
-        mensajeError = "Error de conexión. Verifica tu conexión a internet.";
+    } catch (err: unknown) {
+      console.error("9. Error durante el registro:", err);
+
+      let mensajeError = "Error durante el registro";
+
+      if (err instanceof Error) {
+        mensajeError = err.message || mensajeError;
+
+        // Traducciones adicionales
+        if (err.message.includes("rate limited")) {
+          mensajeError = "Demasiados intentos. Por favor, intenta más tarde";
+        } else if (err.message.includes("Database error")) {
+          mensajeError = "Error en la base de datos. Por favor, contacta al administrador.";
+        } else if (err.message.includes("Network error")) {
+          mensajeError = "Error de conexión. Verifica tu conexión a internet.";
+        }
+      } else if (typeof err === "string") {
+        mensajeError = err;
       }
-      
+
       setError(mensajeError);
     } finally {
       console.log("10. Proceso de registro finalizado");
@@ -131,16 +144,16 @@ export default function SignUpForm() {
   const handleGoogleSignUp = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
-      if (error) throw error;
-    } catch (error) {
-      setError(error.message);
+      if (oauthError) throw oauthError;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al conectarse con Google");
     } finally {
       setLoading(false);
     }
@@ -150,16 +163,16 @@ export default function SignUpForm() {
   const handleTwitterSignUp = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: 'twitter',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`
         }
       });
       
-      if (error) throw error;
-    } catch (error) {
-      setError(error.message);
+      if (oauthError) throw oauthError;
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Error al conectarse con Twitter");
     } finally {
       setLoading(false);
     }

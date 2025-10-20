@@ -7,6 +7,7 @@ import type {
   Organization,
   OrgMember,
   OrgRole,
+  Module,
   CreateOrganizationData,
   UpdateOrganizationData,
 } from '@/types/organization';
@@ -322,7 +323,10 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         viewer: ['read'],
       };
 
-      const permissions = rolePermissions[currentMembership.role] || [];
+      const memberRole = currentMembership.role ?? currentMembership.invited_role;
+      if (!memberRole) return false;
+
+      const permissions = rolePermissions[memberRole] || [];
       return permissions.includes('*') || permissions.includes(permission);
     },
     [currentMembership]
@@ -331,7 +335,9 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const hasRole = useCallback(
     (roles: OrgRole[]): boolean => {
       if (!currentMembership) return false;
-      return roles.includes(currentMembership.role);
+      const memberRole = currentMembership.role ?? currentMembership.invited_role;
+      if (!memberRole) return false;
+      return roles.includes(memberRole);
     },
     [currentMembership]
   );

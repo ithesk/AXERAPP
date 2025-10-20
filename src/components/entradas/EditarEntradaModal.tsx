@@ -275,8 +275,10 @@ export default function EditarEntradaModal({
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
-    const nextValue = type === "checkbox" ? checked : value;
+    const target = e.target;
+    const { name, value } = target;
+    const isCheckbox = target instanceof HTMLInputElement && target.type === "checkbox";
+    const nextValue = isCheckbox ? target.checked : value;
     setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
@@ -360,6 +362,9 @@ export default function EditarEntradaModal({
     }
 
     const newModel = result.data;
+    if (!newModel) {
+      return { success: false, error: "No se pudo crear el modelo" };
+    }
     const modelDisplay = newModel.brand
       ? `${newModel.brand} ${newModel.model_name}`
       : newModel.model_name;
@@ -394,8 +399,8 @@ export default function EditarEntradaModal({
                 Información del Cliente
               </h5>
               <ContactInputWithAutocomplete
-                nameValue={formData.nombre_cliente}
-                phoneValue={formData.telefono}
+                nameValue={formData.nombre_cliente ?? ""}
+                phoneValue={formData.telefono ?? ""}
                 onNameChange={(name) => setFormData((prev) => ({ ...prev, nombre_cliente: name }))}
                 onPhoneChange={(phone) => setFormData((prev) => ({ ...prev, telefono: phone }))}
                 onContactSelect={handleContactSelect}
@@ -420,7 +425,7 @@ export default function EditarEntradaModal({
               </h5>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <DeviceModelInputWithAutocomplete
-                  modelValue={formData.modelo}
+                  modelValue={formData.modelo ?? ""}
                   onModelChange={(modelo) => setFormData((prev) => ({ ...prev, modelo }))}
                   onModelSelect={handleDeviceModelSelect}
                   deviceModels={deviceModels}

@@ -175,7 +175,7 @@ export default function UserInfoCard() {
                   <Input
                     type="email"
                     placeholder={profile?.email || "correo@ejemplo.com"}
-                    defaultValue={profile?.email}
+                    value={profile?.email ?? ""}
                     disabled
                     className="bg-gray-50 dark:bg-gray-800"
                   />

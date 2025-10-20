@@ -506,18 +506,19 @@ export default function DetalleEntradaModal({
             </div>
           </div>
         </div>
-
-        {/* Footer con botón cerrar */}
-        <div className="sticky bottom-0 p-6 border-t border-gray-200 bg-white/95 backdrop-blur-sm dark:bg-gray-900/95 dark:border-gray-800">
-          <Button
-            variant="outline"
-            onClick={onClose}
-            className="w-full sm:w-auto"
-          >
-            Cerrar
-          </Button>
-        </div>
       </div>
+
+      {/* Footer con botón cerrar */}
+      <div className="sticky bottom-0 p-6 border-t border-gray-200 bg-white/95 backdrop-blur-sm dark:bg-gray-900/95 dark:border-gray-800">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="w-full sm:w-auto"
+        >
+          Cerrar
+        </Button>
+      </div>
+    </div>
     </Modal>
   );
 }

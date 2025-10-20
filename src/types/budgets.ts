@@ -30,9 +30,12 @@ export interface BudgetItem {
   quantity: number;
   unit_price: number;
   subtotal: number; // Calculado automáticamente en la BD
+  discount_percentage?: number;
+  tax_percentage?: number;
   sku?: string | null;
   notes?: string | null;
-  display_order: number;
+  sort_order?: number;
+  display_order?: number;
   created_at: string;
   updated_at: string;
 
@@ -88,6 +91,9 @@ export interface CreateBudgetItemData {
   sku?: string;
   notes?: string;
   display_order?: number;
+  sort_order?: number;
+  discount_percentage?: number;
+  tax_percentage?: number;
 
   // Nuevos campos para productos
   product_id?: string; // ID del producto del catálogo (opcional)
@@ -101,6 +107,9 @@ export interface UpdateBudgetItemData {
   sku?: string | null;
   notes?: string | null;
   display_order?: number;
+  sort_order?: number;
+  discount_percentage?: number;
+  tax_percentage?: number;
 
   // Nuevos campos para productos
   product_id?: string | null;

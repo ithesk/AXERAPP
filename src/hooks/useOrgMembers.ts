@@ -201,7 +201,8 @@ export function useOrgMembers() {
 
       // Verificar que no se está intentando modificar al owner
       const member = members.find((m) => m.id === memberId);
-      if (member?.role === "owner") {
+      const memberRole = member?.role ?? member?.invited_role;
+      if (memberRole === "owner") {
         throw new Error("No se puede modificar el rol del propietario");
       }
 

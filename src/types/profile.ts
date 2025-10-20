@@ -17,6 +17,7 @@ export interface UserProfile {
   twitter_url: string | null;
   linkedin_url: string | null;
   instagram_url: string | null;
+  org_id?: string | null;
   current_org_id: string | null; // NUEVO: Organización actual del usuario
   created_at: string;
   updated_at: string;
@@ -28,7 +29,7 @@ export interface UpdateProfileData {
   phone?: string;
   bio?: string;
   role?: string;
-  avatar_url?: string;
+  avatar_url?: string | null;
   location?: string;
   city?: string;
   state?: string;

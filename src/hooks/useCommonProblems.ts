@@ -32,7 +32,8 @@ export function useCommonProblems(
   const [error, setError] = useState<string | null>(null);
 
   const fetchProblems = useCallback(async () => {
-    if (!profile?.org_id) {
+    const orgId = profile?.org_id ?? profile?.current_org_id;
+    if (!orgId) {
       setProblems([]);
       setLoading(false);
       return;
@@ -46,7 +47,7 @@ export function useCommonProblems(
       let query = supabase
         .from("common_problems")
         .select("*")
-        .eq("org_id", profile.org_id);
+        .eq("org_id", orgId);
 
       // Apply filters
       if (filters?.category) {
@@ -83,7 +84,7 @@ export function useCommonProblems(
     } finally {
       setLoading(false);
     }
-  }, [profile?.org_id, filters?.category, filters?.is_active, filters?.search]);
+  }, [profile?.org_id, profile?.current_org_id, filters?.category, filters?.is_active, filters?.search]);
 
   useEffect(() => {
     fetchProblems();
@@ -92,7 +93,8 @@ export function useCommonProblems(
   const createProblem = async (
     data: CreateCommonProblemData
   ): Promise<{ success: boolean; error?: string; data?: CommonProblem }> => {
-    if (!profile?.org_id || !profile?.id) {
+    const orgId = profile?.org_id ?? profile?.current_org_id;
+    if (!orgId || !profile?.id) {
       return { success: false, error: "No organization or user found" };
     }
 
@@ -101,7 +103,7 @@ export function useCommonProblems(
       const { data: newProblem, error: createError } = await supabase
         .from("common_problems")
         .insert({
-          org_id: profile.org_id,
+          org_id: orgId,
           created_by: profile.id,
           problem_text: data.problem_text.trim(),
           category: data.category || null,
@@ -131,7 +133,8 @@ export function useCommonProblems(
     id: string,
     data: UpdateCommonProblemData
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!profile?.org_id) {
+    const orgId = profile?.org_id ?? profile?.current_org_id;
+    if (!orgId) {
       return { success: false, error: "No organization found" };
     }
 
@@ -156,7 +159,7 @@ export function useCommonProblems(
         .from("common_problems")
         .update(updateData)
         .eq("id", id)
-        .eq("org_id", profile.org_id);
+        .eq("org_id", orgId);
 
       if (updateError) {
         console.error("[useCommonProblems] Update error:", updateError);
@@ -177,7 +180,8 @@ export function useCommonProblems(
   const deleteProblem = async (
     id: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!profile?.org_id) {
+    const orgId = profile?.org_id ?? profile?.current_org_id;
+    if (!orgId) {
       return { success: false, error: "No organization found" };
     }
 
@@ -187,7 +191,7 @@ export function useCommonProblems(
         .from("common_problems")
         .delete()
         .eq("id", id)
-        .eq("org_id", profile.org_id);
+        .eq("org_id", orgId);
 
       if (deleteError) {
         console.error("[useCommonProblems] Delete error:", deleteError);

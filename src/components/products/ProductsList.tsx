@@ -6,7 +6,7 @@ import { useToast } from "@/context/ToastContext";
 import Button from "@/components/ui/button/Button";
 import ProductModal from "@/components/products/ProductModal";
 import Input from "@/components/form/input/InputField";
-import type { Product, CreateProductData, ProductType } from "@/types/products";
+import type { Product, CreateProductData, UpdateProductData, ProductType } from "@/types/products";
 import {
   formatPrice,
   formatStock,
@@ -135,9 +135,10 @@ export default function ProductsList() {
     }
   };
 
-  const handleSubmitProduct = async (data: CreateProductData) => {
+  const handleSubmitProduct = async (data: CreateProductData | UpdateProductData) => {
     if (editingProduct) {
-      const result = await updateProduct(editingProduct.id, data);
+      const updatePayload = data as UpdateProductData;
+      const result = await updateProduct(editingProduct.id, updatePayload);
       if (result.success) {
         showToast("success", "Actualizado", "Los cambios se guardaron");
         setIsModalOpen(false);
@@ -145,9 +146,10 @@ export default function ProductsList() {
         return { success: false, error: result.error };
       }
     } else {
-      const result = await createProduct(data);
+      const createPayload = data as CreateProductData;
+      const result = await createProduct(createPayload);
       if (result.success) {
-        showToast("success", "Creado", `"${data.name}" se creó correctamente`);
+        showToast("success", "Creado", `"${createPayload.name}" se creó correctamente`);
         setIsModalOpen(false);
       } else {
         return { success: false, error: result.error };

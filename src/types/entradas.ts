@@ -68,7 +68,7 @@ export interface CreateEntradaData {
   problema_detalle?: string; // Descripción detallada del problema
   accesorios?: string;
   observaciones?: string;
-  tecnico_asignado?: string;
+  tecnico_asignado?: string | null;
   estado?: EstadoEntrada;
   imei_sn?: string;
   device_passwords?: string;
@@ -103,7 +103,7 @@ export interface UpdateEntradaData {
   problema_detalle?: string | null; // Descripción detallada del problema
   accesorios?: string;
   observaciones?: string;
-  tecnico_asignado?: string;
+  tecnico_asignado?: string | null;
   estado?: EstadoEntrada;
   imei_sn?: string | null;
   device_passwords?: string | null;

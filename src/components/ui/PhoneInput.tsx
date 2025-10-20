@@ -2,13 +2,14 @@
 
 import React from "react";
 import PhoneInputWithCountry from "react-phone-number-input";
+import type { CountryCode } from "libphonenumber-js/core";
 import "react-phone-number-input/style.css";
 
 interface PhoneInputProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  defaultCountry?: string;
+  defaultCountry?: CountryCode;
   disabled?: boolean;
   className?: string;
 }
@@ -17,7 +18,7 @@ export function PhoneInput({
   value,
   onChange,
   placeholder = "Ingresa tu número",
-  defaultCountry = "DO", // República Dominicana por defecto
+  defaultCountry = "DO",
   disabled = false,
   className,
 }: PhoneInputProps) {

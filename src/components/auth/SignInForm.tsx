@@ -16,46 +16,53 @@ export default function SignInForm() {
   const [isChecked, setIsChecked] = useState(false);
   
   // Estado adicional para Supabase
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
   
   const router = useRouter();
   const supabase = createClient();
 
   // Función para manejar el inicio de sesión con Supabase
-  const handleSignIn = async (e) => {
+  const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
-        password
+        password,
       });
       
-      if (error) {
-        throw error;
+      if (signInError) {
+        throw signInError;
       }
       
-      router.push('/dashboard');
+      router.push("/dashboard");
       router.refresh();
-    } catch (error) {
+    } catch (err: unknown) {
       // Traducir mensajes de error comunes
-      let mensajeError = error.message;
-      if (error.message.includes("Invalid login credentials")) {
-        mensajeError = "Credenciales de acceso inválidas";
-      } else if (error.message.includes("Email not confirmed")) {
-        mensajeError = "Correo electrónico no confirmado";
-      } else if (error.message.includes("Invalid email")) {
-        mensajeError = "Correo electrónico inválido";
-      } else if (error.message.includes("Password should be")) {
-        mensajeError = "La contraseña debe tener al menos 6 caracteres";
-      } else if (error.message.includes("rate limited")) {
-        mensajeError = "Demasiados intentos. Por favor, intenta más tarde";
+      let mensajeError = "Error al iniciar sesión";
+
+      if (err instanceof Error) {
+        mensajeError = err.message;
+        if (err.message.includes("Invalid login credentials")) {
+          mensajeError = "Credenciales de acceso inválidas";
+        } else if (err.message.includes("Email not confirmed")) {
+          mensajeError = "Correo electrónico no confirmado";
+        } else if (err.message.includes("Invalid email")) {
+          mensajeError = "Correo electrónico inválido";
+        } else if (err.message.includes("Password should be")) {
+          mensajeError = "La contraseña debe tener al menos 6 caracteres";
+        } else if (err.message.includes("rate limited")) {
+          mensajeError = "Demasiados intentos. Por favor, intenta más tarde";
+        }
+      } else if (typeof err === "string") {
+        mensajeError = err;
       }
+
       setError(mensajeError);
     } finally {
       setLoading(false);

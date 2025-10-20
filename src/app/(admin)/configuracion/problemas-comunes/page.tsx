@@ -6,7 +6,6 @@ import type {
   CommonProblem,
   CreateCommonProblemData,
   UpdateCommonProblemData,
-  CommonProblemCategory,
 } from "@/types/commonProblems";
 import { COMMON_PROBLEM_CATEGORIES } from "@/types/commonProblems";
 import { Modal } from "@/components/ui/modal";

@@ -148,7 +148,8 @@ export function MemberManagement() {
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {members.map((member) => {
-              const RoleIcon = ROLE_ICONS[member.role as OrgRole];
+              const memberRole = (member.role ?? member.invited_role) as OrgRole;
+              const RoleIcon = ROLE_ICONS[memberRole];
               const isCurrentUser = member.user_id === currentMembership?.user_id;
 
               return (
@@ -180,9 +181,9 @@ export function MemberManagement() {
 
                   <div className="flex items-center gap-3">
                     {/* Role badge */}
-                    {editingRole === member.id && canManageMembers && member.role !== "owner" ? (
+                    {editingRole === member.id && canManageMembers && memberRole !== "owner" ? (
                       <select
-                        value={member.role}
+                        value={memberRole}
                         onChange={(e) =>
                           handleUpdateRole(member.id, e.target.value as OrgRole)
                         }
@@ -195,18 +196,18 @@ export function MemberManagement() {
                     ) : (
                       <div
                         className={`flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 ${
-                          ROLE_COLORS[member.role as OrgRole]
+                          ROLE_COLORS[memberRole]
                         }`}
                       >
                         <RoleIcon className="h-3 w-3" />
                         <span className="text-sm font-medium">
-                          {ROLE_LABELS[member.role as OrgRole]}
+                          {ROLE_LABELS[memberRole]}
                         </span>
                       </div>
                     )}
 
                     {/* Actions */}
-                    {canManageMembers && member.role !== "owner" && !isCurrentUser && (
+                    {canManageMembers && memberRole !== "owner" && !isCurrentUser && (
                       <div className="relative">
                         <button
                           onClick={() =>
@@ -267,7 +268,8 @@ export function MemberManagement() {
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {invitations.map((invitation) => {
-              const RoleIcon = ROLE_ICONS[invitation.role as OrgRole];
+              const invitationRole = (invitation.role ?? invitation.invited_role) as OrgRole;
+              const RoleIcon = ROLE_ICONS[invitationRole];
               const isExpired =
                 new Date(invitation.expires_at) < new Date();
 
@@ -292,12 +294,12 @@ export function MemberManagement() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100 dark:bg-gray-700 ${
-                        ROLE_COLORS[invitation.role as OrgRole]
+                        ROLE_COLORS[invitationRole]
                       }`}
                     >
                       <RoleIcon className="h-3 w-3" />
                       <span className="text-sm font-medium">
-                        {ROLE_LABELS[invitation.role as OrgRole]}
+                        {ROLE_LABELS[invitationRole]}
                       </span>
                     </div>
 
