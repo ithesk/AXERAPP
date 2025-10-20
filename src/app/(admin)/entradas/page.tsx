@@ -5,7 +5,259 @@ import { useEntradas } from "@/hooks/useEntradas";
 import type { Entrada, EstadoEntrada, EntradasFilters } from "@/types/entradas";
 import NuevaEntradaModal from "@/components/entradas/NuevaEntradaModal";
 import EditarEntradaModal from "@/components/entradas/EditarEntradaModal";
+import DetalleEntradaModalOld from "@/components/entradas/DetalleEntradaModalOptimized";
+import DetalleEntradaModalWithBudget from "@/components/entradas/DetalleEntradaModalWithBudget";
 import { PlusIcon } from "@/icons";
+
+const ESTADO_ORDER: EstadoEntrada[] = [
+  "Cotización",
+  "Inicio reparación",
+  "En reparación",
+  "Reparado",
+  "Entregado",
+  "Cancelado",
+];
+
+const ESTADO_SUMMARY_LABELS: Record<EstadoEntrada, string> = {
+  "Cotización": "Cotizaciones",
+  "Inicio reparación": "Inicio reparación",
+  "En reparación": "En reparación",
+  "Reparado": "Reparados",
+  "Entregado": "Entregados",
+  "Cancelado": "Cancelados",
+};
+
+const normalizeEstadoEntrada = (estado: string): EstadoEntrada => {
+  switch (estado) {
+    case "Pendiente":
+      return "Cotización";
+    case "Listo":
+      return "Reparado";
+    case "Cotización":
+    case "Inicio reparación":
+    case "En reparación":
+    case "Reparado":
+    case "Entregado":
+    case "Cancelado":
+      return estado as EstadoEntrada;
+    default:
+      return "Cotización";
+  }
+};
+
+const getEstadoBadgeClass = (estado: EstadoEntrada) => {
+  switch (estado) {
+    case "Cotización":
+      return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
+    case "Inicio reparación":
+      return "bg-violet-100 text-violet-700 border-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:border-violet-500/20";
+    case "En reparación":
+      return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
+    case "Reparado":
+      return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20";
+    case "Entregado":
+      return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20";
+    case "Cancelado":
+      return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:border-rose-500/20";
+  }
+};
+
+const getEstadoIcon = (estado: EstadoEntrada) => {
+  switch (estado) {
+    case "Cotización":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z"
+            clipRule="evenodd"
+          />
+        </svg>
+      );
+    case "Inicio reparación":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M2.5 3.5a1 1 0 011-1h6.086a1 1 0 01.707.293l5.914 5.914a1 1 0 010 1.414l-4.672 4.672a1 1 0 01-1.414 0L3.793 9.207A1 1 0 013.5 8.5V3.5z" />
+          <path d="M4 2h2v4H4z" />
+        </svg>
+      );
+    case "En reparación":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+            clipRule="evenodd"
+          />
+        </svg>
+      );
+    case "Reparado":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path
+            fillRule="evenodd"
+            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+            clipRule="evenodd"
+          />
+        </svg>
+      );
+    case "Entregado":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
+          <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
+        </svg>
+      );
+    case "Cancelado":
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" />
+        </svg>
+      );
+    default:
+      return (
+        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+          <circle cx="10" cy="10" r="8" />
+        </svg>
+      );
+  }
+};
+
+const getEstadoFilterStyle = (estado: EstadoEntrada) => {
+  switch (estado) {
+    case "Cotización":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30",
+        inactiveClass:
+          "bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+      };
+    case "Inicio reparación":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-500/30",
+        inactiveClass:
+          "bg-violet-100 text-violet-600 hover:bg-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-violet-200 text-violet-700 dark:bg-violet-500/20 dark:text-violet-200",
+      };
+    case "En reparación":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30",
+        inactiveClass:
+          "bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-blue-200 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
+      };
+    case "Reparado":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30",
+        inactiveClass:
+          "bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+      };
+    case "Entregado":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-lg shadow-slate-500/30",
+        inactiveClass:
+          "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:hover:bg-slate-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
+      };
+    case "Cancelado":
+      return {
+        activeClass:
+          "bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/30",
+        inactiveClass:
+          "bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-rose-200 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200",
+      };
+    default:
+      return {
+        activeClass:
+          "bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/30",
+        inactiveClass:
+          "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700",
+        countActiveClass: "bg-white/20 text-white",
+        countInactiveClass:
+          "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+      };
+  }
+};
+
+const getEstadoSummaryStyle = (estado: EstadoEntrada) => {
+  switch (estado) {
+    case "Cotización":
+      return {
+        borderClass: "border-amber-200 dark:border-amber-500/20",
+        backgroundClass: "bg-amber-50/50 dark:bg-amber-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-amber-500 to-amber-600",
+        labelClass: "text-amber-600 dark:text-amber-400",
+        valueClass: "text-amber-700 dark:text-amber-300",
+      };
+    case "Inicio reparación":
+      return {
+        borderClass: "border-violet-200 dark:border-violet-500/20",
+        backgroundClass: "bg-violet-50/50 dark:bg-violet-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-violet-500 to-violet-600",
+        labelClass: "text-violet-600 dark:text-violet-300",
+        valueClass: "text-violet-700 dark:text-violet-200",
+      };
+    case "En reparación":
+      return {
+        borderClass: "border-blue-200 dark:border-blue-500/20",
+        backgroundClass: "bg-blue-50/50 dark:bg-blue-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-blue-500 to-blue-600",
+        labelClass: "text-blue-600 dark:text-blue-400",
+        valueClass: "text-blue-700 dark:text-blue-300",
+      };
+    case "Reparado":
+      return {
+        borderClass: "border-emerald-200 dark:border-emerald-500/20",
+        backgroundClass: "bg-emerald-50/50 dark:bg-emerald-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-emerald-500 to-emerald-600",
+        labelClass: "text-emerald-600 dark:text-emerald-400",
+        valueClass: "text-emerald-700 dark:text-emerald-300",
+      };
+    case "Entregado":
+      return {
+        borderClass: "border-slate-200 dark:border-slate-500/20",
+        backgroundClass: "bg-slate-50/50 dark:bg-slate-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-slate-500 to-slate-600",
+        labelClass: "text-slate-600 dark:text-slate-400",
+        valueClass: "text-slate-700 dark:text-slate-300",
+      };
+    case "Cancelado":
+      return {
+        borderClass: "border-rose-200 dark:border-rose-500/20",
+        backgroundClass: "bg-rose-50/50 dark:bg-rose-500/[0.05]",
+        iconBgClass: "bg-gradient-to-br from-rose-500 to-rose-600",
+        labelClass: "text-rose-600 dark:text-rose-300",
+        valueClass: "text-rose-700 dark:text-rose-200",
+      };
+    default:
+      return {
+        borderClass: "border-gray-200 dark:border-gray-700",
+        backgroundClass: "bg-gray-50/50 dark:bg-gray-800/40",
+        iconBgClass: "bg-gradient-to-br from-gray-600 to-gray-700",
+        labelClass: "text-gray-600 dark:text-gray-300",
+        valueClass: "text-gray-700 dark:text-gray-200",
+      };
+  }
+};
 
 export default function EntradasPage() {
   const [filters, setFilters] = useState<EntradasFilters>({
@@ -14,20 +266,31 @@ export default function EntradasPage() {
   });
   const [isNuevaModalOpen, setIsNuevaModalOpen] = useState(false);
   const [editingEntrada, setEditingEntrada] = useState<Entrada | null>(null);
+  const [detalleEntrada, setDetalleEntrada] = useState<Entrada | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
 
-  const { entradas, loading, error, deleteEntrada } = useEntradas(filters);
+  const { entradas, loading, error, deleteEntrada, updateEntrada, refetchEntradas } = useEntradas(filters);
 
   // Calcular estadísticas
   const stats = useMemo(() => {
-    const total = entradas.length;
-    const pendientes = entradas.filter((e) => e.estado === "Pendiente").length;
-    const enReparacion = entradas.filter((e) => e.estado === "En reparación").length;
-    const listos = entradas.filter((e) => e.estado === "Listo").length;
-    const entregados = entradas.filter((e) => e.estado === "Entregado").length;
+    const counts = ESTADO_ORDER.reduce<Record<EstadoEntrada, number>>(
+      (acc, estado) => {
+        acc[estado] = 0;
+        return acc;
+      },
+      {} as Record<EstadoEntrada, number>
+    );
 
-    return { total, pendientes, enReparacion, listos, entregados };
+    entradas.forEach((entrada) => {
+      const estadoNormalizado = normalizeEstadoEntrada(entrada.estado);
+      counts[estadoNormalizado] = (counts[estadoNormalizado] ?? 0) + 1;
+    });
+
+    return {
+      total: entradas.length,
+      counts,
+    };
   }, [entradas]);
 
   const handleDelete = async (id: string) => {
@@ -44,48 +307,20 @@ export default function EntradasPage() {
     }
   };
 
-  const getEstadoBadgeClass = (estado: EstadoEntrada) => {
-    switch (estado) {
-      case "Pendiente":
-        return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20";
-      case "En reparación":
-        return "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/20";
-      case "Listo":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20";
-      case "Entregado":
-        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:border-slate-500/20";
+  const handleUpdateEstado = async (id: string, newEstado: EstadoEntrada) => {
+    const result = await updateEntrada(id, { estado: newEstado });
+    if (result.success) {
+      refetchEntradas();
+      // Actualizar el estado local de detalleEntrada si está abierto
+      if (detalleEntrada && detalleEntrada.id === id) {
+        setDetalleEntrada({ ...detalleEntrada, estado: newEstado });
+      }
+    } else {
+      // Lanzar error para que el modal lo capture
+      throw new Error(result.error || "Error al actualizar el estado");
     }
   };
 
-  const getEstadoIcon = (estado: EstadoEntrada) => {
-    switch (estado) {
-      case "Pendiente":
-        return (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-          </svg>
-        );
-      case "En reparación":
-        return (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-          </svg>
-        );
-      case "Listo":
-        return (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-          </svg>
-        );
-      case "Entregado":
-        return (
-          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-            <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-          </svg>
-        );
-    }
-  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -132,78 +367,52 @@ export default function EntradasPage() {
         </button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
-        <div className="p-4 border border-gray-200 rounded-xl bg-white/50 dark:bg-white/[0.02] dark:border-gray-800 backdrop-blur-sm">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-7">
+        {/* Total Card */}
+        <div className="relative overflow-hidden transition-all border rounded-xl border-gray-200 dark:border-gray-700 bg-gradient-to-br from-gray-50 to-white dark:from-gray-800/40 dark:to-gray-900/40 p-4 hover:shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
+            <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-gray-600 to-gray-700 shadow-lg">
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div>
-              <p className="text-xs font-medium text-gray-500 dark:text-gray-400">Total</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+              <p className="text-xs font-medium text-gray-600 dark:text-gray-400">Total</p>
+              <p className="text-2xl font-bold text-gray-700 dark:text-gray-200">{stats.total}</p>
             </div>
           </div>
         </div>
 
-        <div className="p-4 border border-amber-200 rounded-xl bg-amber-50/50 dark:bg-amber-500/[0.05] dark:border-amber-500/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-amber-600 dark:text-amber-400">Pendientes</p>
-              <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">{stats.pendientes}</p>
-            </div>
-          </div>
-        </div>
+        {/* Estado Cards */}
+        {ESTADO_ORDER.map((estado) => {
+          const style = getEstadoSummaryStyle(estado);
+          const icon = React.cloneElement(getEstadoIcon(estado), {
+            className: "w-5 h-5 text-white",
+          });
 
-        <div className="p-4 border border-blue-200 rounded-xl bg-blue-50/50 dark:bg-blue-500/[0.05] dark:border-blue-500/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-              </svg>
+          return (
+            <div
+              key={estado}
+              className={`relative overflow-hidden transition-all border rounded-xl ${style.borderClass} ${style.backgroundClass} p-4 hover:shadow-lg cursor-pointer`}
+              onClick={() => setFilters({ ...filters, estado })}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${style.iconBgClass} shadow-lg`}>
+                  {icon}
+                </div>
+                <div>
+                  <p className={`text-xs font-medium ${style.labelClass}`}>
+                    {ESTADO_SUMMARY_LABELS[estado]}
+                  </p>
+                  <p className={`text-2xl font-bold ${style.valueClass}`}>
+                    {stats.counts[estado] ?? 0}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-medium text-blue-600 dark:text-blue-400">En reparación</p>
-              <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.enReparacion}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border border-emerald-200 rounded-xl bg-emerald-50/50 dark:bg-emerald-500/[0.05] dark:border-emerald-500/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">Listos</p>
-              <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{stats.listos}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 border border-slate-200 rounded-xl bg-slate-50/50 dark:bg-slate-500/[0.05] dark:border-slate-500/20 backdrop-blur-sm">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-gradient-to-br from-slate-500 to-slate-600">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400">Entregados</p>
-              <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">{stats.entregados}</p>
-            </div>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
       {/* Filters */}
@@ -244,7 +453,7 @@ export default function EntradasPage() {
               title="Vista de tarjetas"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
               </svg>
             </button>
           </div>
@@ -292,7 +501,7 @@ export default function EntradasPage() {
             </div>
           </div>
 
-          {/* Estado Filter - Pills Style */}
+          {/* Estado Filter - Simple Pills */}
           <div className="md:col-span-7">
             <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
               Estado
@@ -307,99 +516,27 @@ export default function EntradasPage() {
                 }`}
               >
                 Todos
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${
-                  filters.estado === "Todos"
-                    ? "bg-white/20 text-white"
-                    : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-                }`}>
-                  {stats.total}
-                </span>
               </button>
+              {ESTADO_ORDER.map((estado) => {
+                const style = getEstadoFilterStyle(estado);
+                const isActive = filters.estado === estado;
+                const icon = React.cloneElement(getEstadoIcon(estado), {
+                  className: "w-3.5 h-3.5",
+                });
 
-              <button
-                onClick={() => setFilters({ ...filters, estado: "Pendiente" })}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  filters.estado === "Pendiente"
-                    ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30"
-                    : "bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-                </svg>
-                Pendiente
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${
-                  filters.estado === "Pendiente"
-                    ? "bg-white/20 text-white"
-                    : "bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300"
-                }`}>
-                  {stats.pendientes}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setFilters({ ...filters, estado: "En reparación" })}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  filters.estado === "En reparación"
-                    ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30"
-                    : "bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-                En reparación
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${
-                  filters.estado === "En reparación"
-                    ? "bg-white/20 text-white"
-                    : "bg-blue-200 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300"
-                }`}>
-                  {stats.enReparacion}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setFilters({ ...filters, estado: "Listo" })}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  filters.estado === "Listo"
-                    ? "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30"
-                    : "bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Listo
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${
-                  filters.estado === "Listo"
-                    ? "bg-white/20 text-white"
-                    : "bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300"
-                }`}>
-                  {stats.listos}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setFilters({ ...filters, estado: "Entregado" })}
-                className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
-                  filters.estado === "Entregado"
-                    ? "bg-gradient-to-r from-slate-500 to-slate-600 text-white shadow-lg shadow-slate-500/30"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-500/10 dark:text-slate-400 dark:hover:bg-slate-500/20"
-                }`}
-              >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
-                  <path d="M3 4a1 1 0 00-1 1v10a1 1 0 001 1h1.05a2.5 2.5 0 014.9 0H10a1 1 0 001-1V5a1 1 0 00-1-1H3zM14 7a1 1 0 00-1 1v6.05A2.5 2.5 0 0115.95 16H17a1 1 0 001-1v-5a1 1 0 00-.293-.707l-2-2A1 1 0 0015 7h-1z" />
-                </svg>
-                Entregado
-                <span className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold rounded-full ${
-                  filters.estado === "Entregado"
-                    ? "bg-white/20 text-white"
-                    : "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300"
-                }`}>
-                  {stats.entregados}
-                </span>
-              </button>
+                return (
+                  <button
+                    key={estado}
+                    onClick={() => setFilters({ ...filters, estado })}
+                    className={`inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl transition-all ${
+                      isActive ? style.activeClass : style.inactiveClass
+                    }`}
+                  >
+                    {icon}
+                    {estado}
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -490,7 +627,8 @@ export default function EntradasPage() {
                 {entradas.map((entrada) => (
                   <tr
                     key={entrada.id}
-                    className="transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
+                    onClick={() => setDetalleEntrada(entrada)}
+                    className="transition-colors cursor-pointer hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
                   >
                     <td className="px-6 py-4">
                       <div className="font-mono text-sm font-semibold text-brand-600 dark:text-brand-400">
@@ -538,7 +676,10 @@ export default function EntradasPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
-                          onClick={() => setEditingEntrada(entrada)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingEntrada(entrada);
+                          }}
                           className="p-2 text-blue-600 transition-all rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
                           title="Editar"
                         >
@@ -557,7 +698,10 @@ export default function EntradasPage() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => handleDelete(entrada.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(entrada.id);
+                          }}
                           disabled={deletingId === entrada.id}
                           className="p-2 text-red-600 transition-all rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50"
                           title="Eliminar"
@@ -594,7 +738,8 @@ export default function EntradasPage() {
           {entradas.map((entrada) => (
             <div
               key={entrada.id}
-              className="p-5 transition-all border border-gray-200 rounded-2xl bg-white dark:border-gray-800 dark:bg-white/[0.03] hover:shadow-xl hover:scale-105"
+              onClick={() => setDetalleEntrada(entrada)}
+              className="p-5 transition-all border border-gray-200 rounded-2xl bg-white dark:border-gray-800 dark:bg-white/[0.03] hover:shadow-xl hover:scale-105 cursor-pointer"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">
@@ -645,7 +790,10 @@ export default function EntradasPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setEditingEntrada(entrada)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingEntrada(entrada);
+                    }}
                     className="p-2 text-blue-600 transition-all rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
                     title="Editar"
                   >
@@ -654,7 +802,10 @@ export default function EntradasPage() {
                     </svg>
                   </button>
                   <button
-                    onClick={() => handleDelete(entrada.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(entrada.id);
+                    }}
                     disabled={deletingId === entrada.id}
                     className="p-2 text-red-600 transition-all rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50"
                     title="Eliminar"
@@ -678,6 +829,7 @@ export default function EntradasPage() {
       <NuevaEntradaModal
         isOpen={isNuevaModalOpen}
         onClose={() => setIsNuevaModalOpen(false)}
+        onSuccess={refetchEntradas}
       />
       {editingEntrada && (
         <EditarEntradaModal
@@ -685,6 +837,26 @@ export default function EntradasPage() {
           isOpen={!!editingEntrada}
           onClose={() => setEditingEntrada(null)}
         />
+      )}
+      {detalleEntrada && (
+        <>
+          {/* Usar modal con presupuesto para estados de cotización */}
+          {detalleEntrada.estado === "Cotización" ? (
+            <DetalleEntradaModalWithBudget
+              entrada={detalleEntrada}
+              isOpen={!!detalleEntrada}
+              onClose={() => setDetalleEntrada(null)}
+              onUpdateEstado={handleUpdateEstado}
+            />
+          ) : (
+            <DetalleEntradaModalOld
+              entrada={detalleEntrada}
+              isOpen={!!detalleEntrada}
+              onClose={() => setDetalleEntrada(null)}
+              onUpdateEstado={handleUpdateEstado}
+            />
+          )}
+        </>
       )}
     </div>
   );

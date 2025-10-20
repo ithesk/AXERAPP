@@ -26,6 +26,8 @@ interface ContactInputWithAutocompleteProps {
   required?: boolean;
   /** Deshabilitado */
   disabled?: boolean;
+  /** Muestra el input editable de teléfono */
+  showPhoneInput?: boolean;
 }
 
 export default function ContactInputWithAutocomplete({
@@ -39,6 +41,7 @@ export default function ContactInputWithAutocomplete({
   onCreateClick,
   required = false,
   disabled = false,
+  showPhoneInput = true,
 }: ContactInputWithAutocompleteProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(0);
@@ -67,6 +70,9 @@ export default function ContactInputWithAutocomplete({
       return searchableFields.includes(query);
     });
   }, [contacts, nameValue]);
+
+  // Detectar cuando no hay coincidencias y el usuario está escribiendo
+  const hasNoMatches = nameValue.trim().length > 0 && filteredContacts.length === 0 && !loading;
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
@@ -99,6 +105,16 @@ export default function ContactInputWithAutocomplete({
   };
 
   const handleSelectContact = (contact: Contact) => {
+    const normalizedPhone = (() => {
+      const phone = contact.phone?.trim();
+      if (phone) return phone;
+
+      const mobile = contact.mobile?.trim();
+      return mobile ?? "";
+    })();
+
+    onNameChange(contact.name);
+    onPhoneChange(normalizedPhone);
     onContactSelect(contact);
     setIsOpen(false);
     // Enfocar el siguiente campo (teléfono o siguiente en el form)
@@ -156,7 +172,13 @@ export default function ContactInputWithAutocomplete({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div
+      className={
+        showPhoneInput
+          ? "grid grid-cols-1 gap-4 md:grid-cols-2"
+          : "grid grid-cols-1 gap-4"
+      }
+    >
       {/* Campo de nombre con autocomplete */}
       <div className="relative">
         <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -194,93 +216,120 @@ export default function ContactInputWithAutocomplete({
         </div>
 
         {/* Dropdown de sugerencias */}
-        {isOpen && !disabled && filteredContacts.length > 0 && (
+        {isOpen && !disabled && (
           <div
             ref={dropdownRef}
             className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg
                      dark:border-gray-800 dark:bg-gray-900"
           >
-            {/* Lista de contactos */}
-            {filteredContacts.map((contact, index) => {
-              const isHighlighted = index === highlightedIndex;
+            {filteredContacts.length > 0 ? (
+              <>
+                {/* Lista de contactos */}
+                {filteredContacts.map((contact, index) => {
+                  const isHighlighted = index === highlightedIndex;
 
-              return (
-                <button
-                  key={contact.id}
-                  type="button"
-                  onClick={() => handleSelectContact(contact)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
-                  className={`
-                    w-full px-4 py-3 text-left transition-colors
-                    ${
-                      isHighlighted
-                        ? "bg-brand-50 dark:bg-brand-500/10"
-                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                    }
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Avatar */}
-                    <div className="flex-shrink-0">
-                      {contact.avatar_url ? (
-                        <div className="w-8 h-8 rounded-full overflow-hidden">
-                          <Image
-                            src={contact.avatar_url}
-                            alt={contact.name}
-                            width={32}
-                            height={32}
-                            className="object-cover"
-                          />
+                  return (
+                    <button
+                      key={contact.id}
+                      type="button"
+                      onClick={() => handleSelectContact(contact)}
+                      onMouseEnter={() => setHighlightedIndex(index)}
+                      className={`
+                        w-full px-4 py-3 text-left transition-colors
+                        ${
+                          isHighlighted
+                            ? "bg-brand-50 dark:bg-brand-500/10"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        {/* Avatar */}
+                        <div className="flex-shrink-0">
+                          {contact.avatar_url ? (
+                            <div className="w-8 h-8 rounded-full overflow-hidden">
+                              <Image
+                                src={contact.avatar_url}
+                                alt={contact.name}
+                                width={32}
+                                height={32}
+                                className="object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/10 flex items-center justify-center">
+                              <span className="text-xs font-semibold text-brand-600 dark:text-brand-300">
+                                {contact.name.charAt(0).toUpperCase()}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/10 flex items-center justify-center">
-                          <span className="text-xs font-semibold text-brand-600 dark:text-brand-300">
-                            {contact.name.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
 
-                    {/* Info del contacto */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-gray-800 dark:text-white/90 text-sm truncate">
-                          {contact.name}
-                        </span>
-                        {contact.is_client && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
-                            Cliente
-                          </span>
-                        )}
+                        {/* Info del contacto */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-800 dark:text-white/90 text-sm truncate">
+                              {contact.name}
+                            </span>
+                            {contact.is_client && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                                Cliente
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            {contact.phone || contact.mobile || contact.email || "Sin info de contacto"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {contact.phone || contact.mobile || contact.email || "Sin info de contacto"}
-                      </div>
-                    </div>
+                    </button>
+                  );
+                })}
+              </>
+            ) : hasNoMatches && onCreateClick ? (
+              /* Botón para crear nuevo contacto cuando no hay coincidencias */
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-100 dark:border-gray-700"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/10 flex items-center justify-center">
+                    <PlusIcon className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                   </div>
-                </button>
-              );
-            })}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                      Crear "{nameValue}"
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      No se encontró este contacto
+                    </p>
+                  </div>
+                </div>
+              </button>
+            ) : null}
           </div>
         )}
       </div>
 
       {/* Campo de teléfono */}
-      <div>
-        <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-          Teléfono de Contacto {required && <span className="text-red-500">*</span>}
-        </label>
-        <input
-          ref={phoneInputRef}
-          type="tel"
-          value={phoneValue}
-          onChange={(e) => onPhoneChange(e.target.value)}
-          required={required}
-          disabled={disabled}
-          className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
-          placeholder="+1 (555) 123-4567"
-        />
-      </div>
+      {showPhoneInput && (
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Teléfono de Contacto {required && <span className="text-red-500">*</span>}
+          </label>
+          <input
+            ref={phoneInputRef}
+            type="tel"
+            value={phoneValue}
+            onChange={(e) => onPhoneChange(e.target.value)}
+            required={required}
+            disabled={disabled}
+            className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+            placeholder="+1 (555) 123-4567"
+          />
+        </div>
+      )}
     </div>
   );
 }

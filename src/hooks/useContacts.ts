@@ -181,20 +181,38 @@ export function useContacts(options: UseContactsOptions = {}) {
           ...mapAddressToColumns(payload.address),
         };
 
+        console.debug(
+          "[useContacts] Creando contacto",
+          JSON.stringify(
+            {
+              ...insertPayload,
+              available_in_modules: modules,
+            },
+            null,
+            2
+          )
+        );
+
         const { data, error: insertError } = await supabase
           .from("contacts")
           .insert([insertPayload])
           .select()
           .single();
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("[useContacts] Supabase insert error:", insertError);
+          throw insertError;
+        }
 
         const normalized = normalizeContact(data);
         setContacts((prev) => sortContacts([...prev, normalized]));
 
         return { success: true, data: normalized };
       } catch (err) {
-        console.error("Error creating contact:", err);
+        console.error("[useContacts] Error creando contacto:", {
+          error: err,
+          payload,
+        });
         const message =
           err instanceof Error ? err.message : "Error al crear el contacto";
         setError(message);

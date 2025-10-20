@@ -84,6 +84,39 @@ SELECT
     ELSE '❌ entradas.contact_id FALTA'
   END as resultado;
 
+SELECT
+  CASE
+    WHEN (
+      SELECT COUNT(*)
+      FROM information_schema.columns
+      WHERE table_name = 'entradas'
+        AND column_name IN (
+          'imei_sn',
+          'device_passwords',
+          'battery_condition',
+          'check_face_id',
+          'check_signal',
+          'check_wifi',
+          'check_screen',
+          'check_true_tone',
+          'check_touch',
+          'check_camera',
+          'check_microphone',
+          'check_speaker',
+          'check_charging',
+          'check_buttons',
+          'check_panic',
+          'check_screws',
+          'check_earpiece',
+          'check_no_sim',
+          'check_flash',
+          'check_front_camera'
+        )
+    ) = 20
+    THEN '✅ entradas: campos de intake del dispositivo creados'
+    ELSE '❌ entradas: faltan campos de intake del dispositivo'
+  END as resultado;
+
 -- 3. VERIFICAR PLANES DE SUSCRIPCIÓN
 SELECT '
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

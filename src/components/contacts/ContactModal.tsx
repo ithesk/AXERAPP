@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal } from "@/components/ui/modal";
 import Button from "@/components/ui/button/Button";
+import { PhoneInput } from "@/components/ui/PhoneInput";
 import type {
   Contact,
   CreateContactData,
@@ -20,6 +21,7 @@ interface ContactModalProps {
     data: CreateContactData | UpdateContactData
   ) => Promise<{ success: boolean; error?: string }>;
   initialData?: Contact | null;
+  initialName?: string;
 }
 
 type FormState = {
@@ -68,6 +70,7 @@ export default function ContactModal({
   mode,
   onSubmit,
   initialData,
+  initialName,
 }: ContactModalProps) {
   const { currentOrg } = useOrganization();
   const [formState, setFormState] = useState<FormState>(DEFAULT_STATE);
@@ -130,9 +133,13 @@ export default function ContactModal({
         notes: initialData.notes ?? "",
       });
     } else {
-      setFormState(DEFAULT_STATE);
+      // Modo crear: usar initialName si está disponible
+      setFormState({
+        ...DEFAULT_STATE,
+        name: initialName ?? "",
+      });
     }
-  }, [initialData, mode, isOpen]);
+  }, [initialData, mode, isOpen, initialName]);
 
   useEffect(() => {
     setCountrySearch(formState.address_country ?? "");
@@ -336,13 +343,11 @@ export default function ContactModal({
                   <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                     Teléfono
                   </label>
-                  <input
-                    type="tel"
-                    name="phone"
+                  <PhoneInput
                     value={formState.phone}
-                    onChange={handleInputChange}
-                    placeholder="+52 55 1234 5678"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    onChange={(value) => setFormState((prev) => ({ ...prev, phone: value }))}
+                    placeholder="Teléfono fijo"
+                    defaultCountry="DO"
                   />
                 </div>
 
@@ -350,13 +355,11 @@ export default function ContactModal({
                   <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                     Móvil / WhatsApp
                   </label>
-                  <input
-                    type="tel"
-                    name="mobile"
+                  <PhoneInput
                     value={formState.mobile}
-                    onChange={handleInputChange}
-                    placeholder="+52 1 55 1234 5678"
-                    className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20"
+                    onChange={(value) => setFormState((prev) => ({ ...prev, mobile: value }))}
+                    placeholder="Móvil / WhatsApp"
+                    defaultCountry="DO"
                   />
                 </div>
               </div>

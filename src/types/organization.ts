@@ -78,7 +78,7 @@ export interface OrgMember {
   id: string;
   org_id: string;
   user_id: string;
-  role: OrgRole;
+  invited_role: OrgRole;
   status: OrgMemberStatus;
 
   // Invitación
@@ -109,7 +109,7 @@ export interface Invitation {
   id: string;
   org_id: string;
   email: string;
-  role: OrgRole;
+  invited_role: OrgRole;
   invited_by: string;
   token: string;
   expires_at: string;
@@ -216,7 +216,7 @@ export interface OrganizationWithStats extends Organization {
   member_count: number;
   current_usage: OrgUsageStats;
   is_owner: boolean;
-  current_user_role: OrgRole;
+  current_user_invited_role: OrgRole;
 }
 
 // =====================================================
@@ -242,12 +242,12 @@ export interface UpdateOrganizationData {
 
 export interface InviteMemberData {
   email: string;
-  role: OrgRole;
+  invited_role: OrgRole;
 }
 
 export interface UpdateMemberRoleData {
   member_id: string;
-  role: OrgRole;
+  invited_role: OrgRole;
 }
 
 export type UpdateOrgSettingsData = Partial<Omit<OrgSettings, 'id' | 'org_id' | 'created_at' | 'updated_at'>>;

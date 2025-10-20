@@ -58,6 +58,9 @@ export default function DeviceModelInputWithAutocomplete({
     });
   }, [deviceModels, modelValue]);
 
+  // Detectar cuando no hay coincidencias y el usuario está escribiendo
+  const hasNoMatches = modelValue.trim().length > 0 && filteredModels.length === 0 && !loading;
+
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -181,64 +184,89 @@ export default function DeviceModelInputWithAutocomplete({
       </div>
 
       {/* Dropdown de sugerencias */}
-      {isOpen && !disabled && filteredModels.length > 0 && (
+      {isOpen && !disabled && (
         <div
           ref={dropdownRef}
           className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg
                    dark:border-gray-800 dark:bg-gray-900"
         >
-          {/* Lista de modelos */}
-          {filteredModels.map((model, index) => {
-            const isHighlighted = index === highlightedIndex;
-            const displayName = model.brand
-              ? `${model.brand} ${model.model_name}`
-              : model.model_name;
+          {filteredModels.length > 0 ? (
+            <>
+              {/* Lista de modelos */}
+              {filteredModels.map((model, index) => {
+                const isHighlighted = index === highlightedIndex;
+                const displayName = model.brand
+                  ? `${model.brand} ${model.model_name}`
+                  : model.model_name;
 
-            return (
-              <button
-                key={model.id}
-                type="button"
-                onClick={() => handleSelectModel(model)}
-                onMouseEnter={() => setHighlightedIndex(index)}
-                className={`
-                  w-full px-4 py-3 text-left transition-colors
-                  ${
-                    isHighlighted
-                      ? "bg-brand-50 dark:bg-brand-500/10"
-                      : "hover:bg-gray-50 dark:hover:bg-gray-800"
-                  }
-                `}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  {/* Info del modelo */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-800 dark:text-white/90 text-sm truncate">
-                        {displayName}
-                      </span>
-                      {model.category && (
-                        <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
-                          {model.category}
+                return (
+                  <button
+                    key={model.id}
+                    type="button"
+                    onClick={() => handleSelectModel(model)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
+                    className={`
+                      w-full px-4 py-3 text-left transition-colors
+                      ${
+                        isHighlighted
+                          ? "bg-brand-50 dark:bg-brand-500/10"
+                          : "hover:bg-gray-50 dark:hover:bg-gray-800"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Info del modelo */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-800 dark:text-white/90 text-sm truncate">
+                            {displayName}
+                          </span>
+                          {model.category && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300">
+                              {model.category}
+                            </span>
+                          )}
+                        </div>
+                        {model.reference && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                            Ref: {model.reference}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Usage count badge */}
+                      {model.usage_count > 0 && (
+                        <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+                          {model.usage_count} {model.usage_count === 1 ? "uso" : "usos"}
                         </span>
                       )}
                     </div>
-                    {model.reference && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        Ref: {model.reference}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Usage count badge */}
-                  {model.usage_count > 0 && (
-                    <span className="flex-shrink-0 text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300">
-                      {model.usage_count} {model.usage_count === 1 ? "uso" : "usos"}
-                    </span>
-                  )}
+                  </button>
+                );
+              })}
+            </>
+          ) : hasNoMatches && onCreateClick ? (
+            /* Botón para crear nuevo modelo cuando no hay coincidencias */
+            <button
+              type="button"
+              onClick={handleCreateNew}
+              className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors border-t border-gray-100 dark:border-gray-700"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-500/10 flex items-center justify-center">
+                  <PlusIcon className="w-4 h-4 text-brand-600 dark:text-brand-400" />
                 </div>
-              </button>
-            );
-          })}
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                    Crear "{modelValue}"
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    No se encontró este modelo
+                  </p>
+                </div>
+              </div>
+            </button>
+          ) : null}
         </div>
       )}
 

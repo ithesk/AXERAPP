@@ -18,6 +18,7 @@ interface DeviceModelModalProps {
     data: CreateDeviceModelData | UpdateDeviceModelData
   ) => Promise<{ success: boolean; error?: string }>;
   initialData?: DeviceModel | null;
+  initialModelName?: string;
 }
 
 type FormState = {
@@ -40,6 +41,7 @@ export default function DeviceModelModal({
   mode,
   onSubmit,
   initialData,
+  initialModelName,
 }: DeviceModelModalProps) {
   const [formState, setFormState] = useState<FormState>(DEFAULT_STATE);
   const [saving, setSaving] = useState(false);
@@ -54,9 +56,13 @@ export default function DeviceModelModal({
         reference: initialData.reference ?? "",
       });
     } else {
-      setFormState(DEFAULT_STATE);
+      // Modo crear: usar initialModelName si está disponible
+      setFormState({
+        ...DEFAULT_STATE,
+        model_name: initialModelName ?? "",
+      });
     }
-  }, [initialData, mode, isOpen]);
+  }, [initialData, mode, isOpen, initialModelName]);
 
   const modalTitle =
     mode === "edit" ? "Editar modelo de dispositivo" : "Nuevo modelo de dispositivo";

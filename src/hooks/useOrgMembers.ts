@@ -35,25 +35,55 @@ export function useOrgMembers() {
 
       const { data, error: fetchError } = await supabase
         .from("org_members")
-        .select(
-          `
-          *,
-          user:profiles(
-            id,
-            email,
-            first_name,
-            last_name,
-            avatar_url
-          )
-        `
-        )
+        .select("*")
         .eq("org_id", currentOrg.id)
         .eq("status", "active")
         .order("joined_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
-      setMembers(data || []);
+      const membersRaw = data ?? [];
+
+      if (membersRaw.length === 0) {
+        setMembers([]);
+      } else {
+        const userIds = Array.from(
+          new Set(
+            membersRaw
+              .map((member) => member.user_id)
+              .filter((id): id is string => typeof id === "string" && id.length > 0)
+          )
+        );
+
+        const profilesMap = new Map<string, { email: string | null; first_name: string | null; last_name: string | null; avatar_url: string | null }>();
+
+        if (userIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, email, first_name, last_name, avatar_url")
+            .in("id", userIds);
+
+          if (profilesError) {
+            console.error("Error fetching member profiles:", profilesError);
+          } else {
+            (profilesData ?? []).forEach((profile) => {
+              profilesMap.set(profile.id as string, {
+                email: (profile.email as string) ?? null,
+                first_name: (profile.first_name as string | null) ?? null,
+                last_name: (profile.last_name as string | null) ?? null,
+                avatar_url: (profile.avatar_url as string | null) ?? null,
+              });
+            });
+          }
+        }
+
+        const enriched = membersRaw.map((member) => ({
+          ...member,
+          user: profilesMap.get(member.user_id) ?? null,
+        }));
+
+        setMembers(enriched);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error fetching members");
       console.error("Error fetching members:", err);
@@ -73,11 +103,14 @@ export function useOrgMembers() {
     }
 
     try {
+      const nowIso = new Date().toISOString();
+
       const { data, error: fetchError } = await supabase
-        .from("org_invitations")
+        .from("invitations")
         .select("*")
         .eq("org_id", currentOrg.id)
-        .eq("status", "pending")
+        .is("accepted_at", null)
+        .gt("expires_at", nowIso)
         .order("created_at", { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -114,12 +147,12 @@ export function useOrgMembers() {
 
       // Crear invitación
       const { data: invitation, error: inviteError } = await supabase
-        .from("org_invitations")
+        .from("invitations")
         .insert([
           {
             org_id: currentOrg.id,
             email: data.email,
-            role: data.role,
+            invited_role: data.role,
             invited_by: user?.id,
             expires_at: new Date(
               Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -269,8 +302,8 @@ export function useOrgMembers() {
       setError(null);
 
       const { error: cancelError } = await supabase
-        .from("org_invitations")
-        .update({ status: "cancelled" })
+        .from("invitations")
+        .delete()
         .eq("id", invitationId)
         .eq("org_id", currentOrg.id);
 
@@ -311,7 +344,7 @@ export function useOrgMembers() {
 
       // Extender la fecha de expiración
       const { data, error: updateError } = await supabase
-        .from("org_invitations")
+        .from("invitations")
         .update({
           expires_at: new Date(
             Date.now() + 7 * 24 * 60 * 60 * 1000

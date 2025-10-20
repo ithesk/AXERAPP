@@ -89,15 +89,17 @@ export function useEntradas(filters?: EntradasFilters) {
         data: { user },
       } = await supabase.auth.getUser();
 
+      const insertPayload = {
+        ...data,
+        org_id: currentOrg.id, // NUEVO: Agregar org_id
+        usuario_id: user?.id,
+      };
+
+      console.debug("[useEntradas] Creando entrada", insertPayload);
+
       const { data: newEntrada, error: createError } = await supabase
         .from("entradas")
-        .insert([
-          {
-            ...data,
-            org_id: currentOrg.id, // NUEVO: Agregar org_id
-            usuario_id: user?.id,
-          },
-        ])
+        .insert([insertPayload])
         .select()
         .single();
 
@@ -111,24 +113,50 @@ export function useEntradas(filters?: EntradasFilters) {
       const errorMessage =
         err instanceof Error ? err.message : "Error creating entrada";
       setError(errorMessage);
-      console.error("Error creating entrada:", err);
+      console.error("[useEntradas] Error creando entrada:", {
+        error: err,
+        payload: data,
+      });
       return { success: false, error: errorMessage };
     }
   };
 
   // Update entrada
   const updateEntrada = async (id: string, updates: UpdateEntradaData) => {
+    if (!currentOrg) {
+      const errorMessage = "No hay una organización seleccionada";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+
     try {
       setError(null);
 
+      console.log('[useEntradas] Actualizando entrada:', { id, updates });
+      console.log('[useEntradas] Tipo de updates.estado:', typeof updates.estado, updates.estado);
+
+      const sanitizedUpdates = { ...updates } as Record<string, unknown>;
+      delete sanitizedUpdates.org_id;
+
       const { data, error: updateError } = await supabase
         .from("entradas")
-        .update(updates)
-        .eq("id", id)
+        .update(sanitizedUpdates)
+        .match({ id, org_id: currentOrg.id })
         .select()
         .single();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('[useEntradas] Error de Supabase COMPLETO:', {
+          message: updateError.message,
+          details: updateError.details,
+          hint: updateError.hint,
+          code: updateError.code,
+          fullError: updateError
+        });
+        throw updateError;
+      }
+
+      console.log('[useEntradas] Entrada actualizada exitosamente:', data);
 
       // Update local state
       setEntradas((prev) =>
@@ -140,20 +168,33 @@ export function useEntradas(filters?: EntradasFilters) {
       const errorMessage =
         err instanceof Error ? err.message : "Error updating entrada";
       setError(errorMessage);
-      console.error("Error updating entrada:", err);
+      console.error("[useEntradas] Error updating entrada:", {
+        error: err,
+        id,
+        updates,
+        errorName: err instanceof Error ? err.name : 'unknown',
+        errorMessage: err instanceof Error ? err.message : 'unknown',
+        fullError: JSON.stringify(err, null, 2)
+      });
       return { success: false, error: errorMessage };
     }
   };
 
   // Delete entrada
   const deleteEntrada = async (id: string) => {
+    if (!currentOrg) {
+      const errorMessage = "No hay una organización seleccionada";
+      setError(errorMessage);
+      return { success: false, error: errorMessage };
+    }
+
     try {
       setError(null);
 
       const { error: deleteError } = await supabase
         .from("entradas")
         .delete()
-        .eq("id", id);
+        .match({ id, org_id: currentOrg.id });
 
       if (deleteError) throw deleteError;
 
