@@ -22,7 +22,7 @@ export default function ProductosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Tabs Navigation */}
+      {/* Tabs Navigation n */}
       <div className="border-b border-gray-200 dark:border-gray-800">
         <nav className="-mb-px flex space-x-8" aria-label="Tabs">
           {tabs.map((tab) => {
