@@ -25,7 +25,7 @@ export async function middleware(req: NextRequest) {
 
   // Si hay sesión e intenta acceder a landing o páginas de autenticación, redirigir a dashboard
   if ((isLandingPage || isAuthRoute) && session) {
-    return NextResponse.redirect(new URL('/entradas', req.url));
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
   return res;

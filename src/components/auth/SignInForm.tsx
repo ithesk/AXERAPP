@@ -40,7 +40,7 @@ export default function SignInForm() {
         throw signInError;
       }
 
-      router.push("/entradas");
+      router.push("/dashboard");
       router.refresh();
     } catch (err: unknown) {
       // Traducir mensajes de error comunes
