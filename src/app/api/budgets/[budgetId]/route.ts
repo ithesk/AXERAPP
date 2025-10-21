@@ -9,10 +9,18 @@ export async function GET(
   try {
     const supabase = await createClient();
     const { budgetId } = await params;
+    const orgId = request.nextUrl.searchParams.get("org_id");
 
     if (!budgetId) {
       return NextResponse.json(
         { error: "budgetId is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "org_id is required" },
         { status: 400 }
       );
     }
@@ -22,6 +30,7 @@ export async function GET(
       .from("budgets")
       .select("*")
       .eq("id", budgetId)
+      .eq("org_id", orgId)
       .single();
 
     if (budgetError) {
@@ -35,8 +44,15 @@ export async function GET(
     // Obtener items del presupuesto
     const { data: items, error: itemsError } = await supabase
       .from("budget_items")
-      .select("*")
+      .select(
+        `
+          *,
+          product:products(*),
+          budget:budgets!inner(id, org_id)
+        `
+      )
       .eq("budget_id", budgetId)
+      .eq("budget.org_id", orgId)
       .order("display_order", { ascending: true });
 
     if (itemsError) {
@@ -47,10 +63,16 @@ export async function GET(
       );
     }
 
+    const sanitizedItems = (items ?? []).map((item) => {
+      const { budget, ...rest } = item as Record<string, unknown>;
+      void budget;
+      return rest;
+    });
+
     return NextResponse.json({
       budget: {
         ...budget,
-        items: items || [],
+        items: sanitizedItems,
       },
     });
   } catch (error) {
@@ -70,6 +92,7 @@ export async function DELETE(
   try {
     const supabase = await createClient();
     const { budgetId } = await params;
+    const orgId = request.nextUrl.searchParams.get("org_id");
 
     if (!budgetId) {
       return NextResponse.json(
@@ -78,11 +101,41 @@ export async function DELETE(
       );
     }
 
+    if (!orgId) {
+      return NextResponse.json(
+        { error: "org_id is required" },
+        { status: 400 }
+      );
+    }
+
+    const { error: ownershipError } = await supabase
+      .from("budgets")
+      .select("id")
+      .eq("id", budgetId)
+      .eq("org_id", orgId)
+      .single();
+
+    if (ownershipError) {
+      if (ownershipError.code === "PGRST116") {
+        return NextResponse.json(
+          { error: "Presupuesto no encontrado" },
+          { status: 404 }
+        );
+      }
+
+      console.error("Error al validar presupuesto antes de eliminar:", ownershipError);
+      return NextResponse.json(
+        { error: "Error al eliminar presupuesto" },
+        { status: 500 }
+      );
+    }
+
     // Eliminar presupuesto (items se eliminan por CASCADE)
     const { error: deleteError } = await supabase
       .from("budgets")
       .delete()
-      .eq("id", budgetId);
+      .eq("id", budgetId)
+      .eq("org_id", orgId);
 
     if (deleteError) {
       console.error("Error al eliminar presupuesto:", deleteError);

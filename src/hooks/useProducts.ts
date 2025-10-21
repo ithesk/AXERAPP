@@ -235,16 +235,29 @@ export function useProducts(filters?: ProductsFilters): UseProductsResult {
         );
 
         if (uniqueTagIds.length > 0) {
-          const tagRelations = uniqueTagIds.map((tagId) => ({
-            product_id: insertedProduct.id,
-            tag_id: tagId,
-          }));
+          const { data: allowedTags, error: tagsLookupError } = await supabase
+            .from("tags")
+            .select("id")
+            .in("id", uniqueTagIds)
+            .eq("org_id", currentOrg.id);
 
-          const { error: tagsError } = await supabase
-            .from("product_tags")
-            .insert(tagRelations);
+          if (tagsLookupError) throw tagsLookupError;
 
-          if (tagsError) throw tagsError;
+          const allowedIds = new Set((allowedTags ?? []).map((tag) => tag.id));
+          const tagRelations = uniqueTagIds
+            .filter((tagId) => allowedIds.has(tagId))
+            .map((tagId) => ({
+              product_id: insertedProduct.id,
+              tag_id: tagId,
+            }));
+
+          if (tagRelations.length > 0) {
+            const { error: tagsError } = await supabase
+              .from("product_tags")
+              .insert(tagRelations);
+
+            if (tagsError) throw tagsError;
+          }
         }
 
         const { data: productWithRelations, error: fetchError } = await supabase
@@ -260,6 +273,7 @@ export function useProducts(filters?: ProductsFilters): UseProductsResult {
             `
           )
           .eq("id", insertedProduct.id)
+          .eq("org_id", currentOrg.id)
           .single();
 
         if (fetchError) throw fetchError;
@@ -358,16 +372,29 @@ export function useProducts(filters?: ProductsFilters): UseProductsResult {
           );
 
           if (uniqueTagIds.length > 0) {
-            const tagRelations = uniqueTagIds.map((tagId) => ({
-              product_id: id,
-              tag_id: tagId,
-            }));
+            const { data: allowedTags, error: tagsLookupError } = await supabase
+              .from("tags")
+              .select("id")
+              .in("id", uniqueTagIds)
+              .eq("org_id", currentOrg.id);
 
-            const { error: insertTagsError } = await supabase
-              .from("product_tags")
-              .insert(tagRelations);
+            if (tagsLookupError) throw tagsLookupError;
 
-            if (insertTagsError) throw insertTagsError;
+            const allowedIds = new Set((allowedTags ?? []).map((tag) => tag.id));
+            const tagRelations = uniqueTagIds
+              .filter((tagId) => allowedIds.has(tagId))
+              .map((tagId) => ({
+                product_id: id,
+                tag_id: tagId,
+              }));
+
+            if (tagRelations.length > 0) {
+              const { error: insertTagsError } = await supabase
+                .from("product_tags")
+                .insert(tagRelations);
+
+              if (insertTagsError) throw insertTagsError;
+            }
           }
         }
 
@@ -384,6 +411,7 @@ export function useProducts(filters?: ProductsFilters): UseProductsResult {
             `
           )
           .eq("id", id)
+          .eq("org_id", currentOrg.id)
           .single();
 
         if (fetchError) throw fetchError;

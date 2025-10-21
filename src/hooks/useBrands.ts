@@ -96,6 +96,10 @@ export function useBrands(): UseBrandsReturn {
   // Actualizar marca
   const updateBrand = useCallback(
     async (id: string, data: UpdateBrandData) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const updateData: any = {};
 
@@ -108,7 +112,8 @@ export function useBrands(): UseBrandsReturn {
         const { error: updateError } = await supabase
           .from("brands")
           .update(updateData)
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (updateError) throw updateError;
 
@@ -119,17 +124,22 @@ export function useBrands(): UseBrandsReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadBrands]
+    [supabase, loadBrands, currentOrg?.id]
   );
 
   // Eliminar marca
   const deleteBrand = useCallback(
     async (id: string) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const { error: deleteError } = await supabase
           .from("brands")
           .delete()
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (deleteError) throw deleteError;
 
@@ -140,7 +150,7 @@ export function useBrands(): UseBrandsReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadBrands]
+    [supabase, loadBrands, currentOrg?.id]
   );
 
   return {

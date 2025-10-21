@@ -26,6 +26,13 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const requireOrgId = useCallback(() => {
+    if (!currentOrg?.id) {
+      throw new Error("No hay organización seleccionada");
+    }
+    return currentOrg.id;
+  }, [currentOrg?.id]);
+
   const fetchMovements = useCallback(async () => {
     if (!currentOrg) {
       setMovements([]);
@@ -97,11 +104,12 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
       try {
         setError(null);
 
+        const orgId = requireOrgId();
         const supabase = createClient();
 
         // Llamar a la función de base de datos que maneja todo
         const { error: rpcError } = await supabase.rpc("create_inventory_movement", {
-          p_org_id: currentOrg.id,
+          p_org_id: orgId,
           p_product_id: payload.product_id,
           p_movement_type: payload.movement_type,
           p_quantity: payload.quantity,
@@ -124,7 +132,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         return { success: false, error: message };
       }
     },
-    [currentOrg, fetchMovements]
+    [currentOrg, fetchMovements, requireOrgId]
   );
 
   const deleteMovement = useCallback(
@@ -139,13 +147,14 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         setError(null);
 
         const supabase = createClient();
+        const orgId = requireOrgId();
 
         // Obtener el movimiento antes de eliminarlo
         const { data: movement, error: fetchError } = await supabase
           .from("inventory_movements")
           .select("*")
           .eq("id", id)
-          .eq("org_id", currentOrg.id)
+          .eq("org_id", orgId)
           .single();
 
         if (fetchError) throw fetchError;
@@ -156,7 +165,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
           .from("inventory_movements")
           .delete()
           .eq("id", id)
-          .eq("org_id", currentOrg.id);
+          .eq("org_id", orgId);
 
         if (deleteError) throw deleteError;
 
@@ -168,7 +177,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
             updated_at: new Date().toISOString(),
           })
           .eq("id", movement.product_id)
-          .eq("org_id", currentOrg.id);
+          .eq("org_id", orgId);
 
         if (updateError) throw updateError;
 
@@ -182,17 +191,34 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         return { success: false, error: message };
       }
     },
-    [currentOrg]
+    [currentOrg, requireOrgId]
   );
 
   const validateBudgetStock = useCallback(
-    async (budgetId: string): Promise<{ isValid: boolean; issues: StockValidation[] }> => {
+    async (
+      budgetId: string
+    ): Promise<{ isValid: boolean; issues: StockValidation[] }> => {
       try {
+        const orgId = requireOrgId();
         const supabase = createClient();
 
-        const { data, error: rpcError } = await supabase.rpc("validate_budget_stock", {
-          p_budget_id: budgetId,
-        });
+        const { data: budget, error: ownershipError } = await supabase
+          .from("budgets")
+          .select("id")
+          .eq("id", budgetId)
+          .eq("org_id", orgId)
+          .single();
+
+        if (ownershipError || !budget) {
+          throw new Error("Presupuesto no encontrado");
+        }
+
+        const { data, error: rpcError } = await supabase.rpc(
+          "validate_budget_stock",
+          {
+            p_budget_id: budgetId,
+          }
+        );
 
         if (rpcError) throw rpcError;
 
@@ -209,7 +235,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         };
       }
     },
-    []
+    [requireOrgId]
   );
 
   const reserveBudgetInventory = useCallback(
@@ -217,7 +243,19 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
       try {
         setError(null);
 
+        const orgId = requireOrgId();
         const supabase = createClient();
+
+        const { data: budget, error: ownershipError } = await supabase
+          .from("budgets")
+          .select("id")
+          .eq("id", budgetId)
+          .eq("org_id", orgId)
+          .single();
+
+        if (ownershipError || !budget) {
+          throw new Error("Presupuesto no encontrado");
+        }
 
         const { error: rpcError } = await supabase.rpc("reserve_budget_inventory", {
           p_budget_id: budgetId,
@@ -236,7 +274,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         return { success: false, error: message };
       }
     },
-    [fetchMovements]
+    [fetchMovements, requireOrgId]
   );
 
   const releaseBudgetInventory = useCallback(
@@ -244,7 +282,19 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
       try {
         setError(null);
 
+        const orgId = requireOrgId();
         const supabase = createClient();
+
+        const { data: budget, error: ownershipError } = await supabase
+          .from("budgets")
+          .select("id")
+          .eq("id", budgetId)
+          .eq("org_id", orgId)
+          .single();
+
+        if (ownershipError || !budget) {
+          throw new Error("Presupuesto no encontrado");
+        }
 
         const { error: rpcError } = await supabase.rpc("release_budget_inventory", {
           p_budget_id: budgetId,
@@ -263,7 +313,7 @@ export function useInventory(filters?: InventoryMovementsFilters): UseInventoryR
         return { success: false, error: message };
       }
     },
-    [fetchMovements]
+    [fetchMovements, requireOrgId]
   );
 
   return {

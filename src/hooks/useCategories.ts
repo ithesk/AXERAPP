@@ -93,6 +93,10 @@ export function useCategories(): UseCategoriesReturn {
 
   const updateCategory = useCallback(
     async (id: string, data: UpdateCategoryData) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const updateData: any = {};
 
@@ -106,7 +110,8 @@ export function useCategories(): UseCategoriesReturn {
         const { error: updateError } = await supabase
           .from("categories")
           .update(updateData)
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (updateError) throw updateError;
 
@@ -117,16 +122,21 @@ export function useCategories(): UseCategoriesReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadCategories]
+    [supabase, loadCategories, currentOrg?.id]
   );
 
   const deleteCategory = useCallback(
     async (id: string) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const { error: deleteError } = await supabase
           .from("categories")
           .delete()
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (deleteError) throw deleteError;
 
@@ -137,7 +147,7 @@ export function useCategories(): UseCategoriesReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadCategories]
+    [supabase, loadCategories, currentOrg?.id]
   );
 
   return {

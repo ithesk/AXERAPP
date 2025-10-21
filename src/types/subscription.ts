@@ -2,40 +2,23 @@
 // Subscription & Plan Types
 // =====================================================
 
+import type { Tables } from "@/types/supabase";
 import type { SubscriptionPlan, Module } from './organization';
+
+type SubscriptionPlanRow = Tables<"subscription_plans">;
 
 // =====================================================
 // Subscription Plan Details
 // =====================================================
 
-export interface SubscriptionPlanDetails {
-  id: SubscriptionPlan;
-  name: string;
-  description: string | null;
-
-  // Precios
-  price_monthly: number | null;
-  price_yearly: number | null;
-
-  // Stripe Price IDs
-  stripe_price_id_monthly: string | null;
-  stripe_price_id_yearly: string | null;
-
-  // Límites
-  max_users: number | null; // null = ilimitado
-  max_entradas_per_month: number | null;
-  max_storage_gb: number | null;
-
-  // Módulos disponibles
+export interface SubscriptionPlanDetails
+  extends Omit<
+    SubscriptionPlanRow,
+    "modules" | "features" | "created_at" | "updated_at"
+  > {
   modules: Module[];
-
-  // Features
   features: PlanFeature[];
-
-  // Metadata
-  is_active: boolean;
-  sort_order: number;
-  created_at?: string;
+  created_at?: SubscriptionPlanRow["created_at"];
 }
 
 // =====================================================

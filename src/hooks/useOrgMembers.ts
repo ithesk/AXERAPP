@@ -152,7 +152,7 @@ export function useOrgMembers() {
           {
             org_id: currentOrg.id,
             email: data.email,
-            invited_role: data.role,
+            role: data.role,
             invited_by: user?.id,
             expires_at: new Date(
               Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -201,7 +201,7 @@ export function useOrgMembers() {
 
       // Verificar que no se está intentando modificar al owner
       const member = members.find((m) => m.id === memberId);
-      const memberRole = member?.role ?? member?.invited_role;
+      const memberRole = member?.role;
       if (memberRole === "owner") {
         throw new Error("No se puede modificar el rol del propietario");
       }

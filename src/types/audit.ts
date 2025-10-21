@@ -1,16 +1,7 @@
-// =====================================================
-// Audit Log Types
-// =====================================================
+import type { Tables } from "@/types/supabase";
 
 // Tipos de acciones registradas en audit logs
-export type AuditAction =
-  | 'created'
-  | 'updated'
-  | 'deleted'
-  | 'viewed'
-  | 'exported'
-  | 'login'
-  | 'logout';
+export type AuditAction = Tables<"audit_logs">["action"];
 
 // Tipos de entidades que se pueden auditar
 export type AuditEntityType =
@@ -22,29 +13,15 @@ export type AuditEntityType =
   | 'user'
   | 'subscription';
 
-// =====================================================
+type AuditLogRow = Tables<"audit_logs">;
+
 // Audit Log Interface
-// =====================================================
-
-export interface AuditLog {
-  id: string;
-  org_id: string;
-  user_id: string | null;
-
-  // Información de la acción
-  action: AuditAction;
+export interface AuditLog
+  extends Omit<AuditLogRow, "old_data" | "new_data" | "metadata"> {
   entity_type: AuditEntityType;
-  entity_id: string | null;
-
-  // Datos del cambio
   old_data: Record<string, unknown> | null;
   new_data: Record<string, unknown> | null;
-
-  // Metadata adicional
   metadata: AuditMetadata;
-
-  // Timestamp
-  created_at: string;
 }
 
 // =====================================================

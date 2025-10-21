@@ -1,114 +1,50 @@
-// =====================================================
-// TYPES: Product Attributes (Brands, Categories, Tags)
-// =====================================================
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 
-// =====================================================
-// BRANDS (Marcas)
-// =====================================================
-export interface Brand {
-  id: string;
-  org_id: string;
-  name: string;
-  description?: string | null;
-  logo_url?: string | null;
-  website?: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by?: string | null;
-}
+type BrandRow = Tables<"brands">;
+type CategoryRow = Tables<"categories">;
+type TagRow = Tables<"tags">;
+type ProductTagRow = Tables<"product_tags">;
 
-export interface CreateBrandData {
-  name: string;
-  description?: string;
-  logo_url?: string;
-  website?: string;
-  is_active?: boolean;
-}
+export type Brand = BrandRow;
 
-export interface UpdateBrandData {
-  name?: string;
-  description?: string;
-  logo_url?: string;
-  website?: string;
-  is_active?: boolean;
-}
+export type CreateBrandData = Omit<
+  TablesInsert<"brands">,
+  "id" | "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-// =====================================================
-// CATEGORIES (Categorías)
-// =====================================================
-export interface Category {
-  id: string;
-  org_id: string;
-  name: string;
-  description?: string | null;
-  icon?: string | null;
-  color?: string | null;
-  parent_id?: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by?: string | null;
+export type UpdateBrandData = Omit<
+  TablesUpdate<"brands">,
+  "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-  // Relaciones
+export interface Category extends CategoryRow {
   parent?: Category | null;
   children?: Category[];
 }
 
-export interface CreateCategoryData {
-  name: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  parent_id?: string;
-  is_active?: boolean;
-}
+export type CreateCategoryData = Omit<
+  TablesInsert<"categories">,
+  "id" | "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-export interface UpdateCategoryData {
-  name?: string;
-  description?: string;
-  icon?: string;
-  color?: string;
-  parent_id?: string;
-  is_active?: boolean;
-}
+export type UpdateCategoryData = Omit<
+  TablesUpdate<"categories">,
+  "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-// =====================================================
-// TAGS (Etiquetas)
-// =====================================================
-export interface Tag {
-  id: string;
-  org_id: string;
-  name: string;
-  color: string;
-  description?: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-  created_by?: string | null;
-}
+export type Tag = TagRow;
 
-export interface CreateTagData {
-  name: string;
-  color?: string;
-  description?: string;
-  is_active?: boolean;
-}
+export type CreateTagData = Omit<
+  TablesInsert<"tags">,
+  "id" | "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-export interface UpdateTagData {
-  name?: string;
-  color?: string;
-  description?: string;
-  is_active?: boolean;
-}
+export type UpdateTagData = Omit<
+  TablesUpdate<"tags">,
+  "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
-// =====================================================
-// PRODUCT TAGS (Relación)
-// =====================================================
-export interface ProductTag {
-  product_id: string;
-  tag_id: string;
-  created_at: string;
+export interface ProductTag extends ProductTagRow {
   tag?: Tag;
 }
 

@@ -1,33 +1,18 @@
-/**
- * Common Problems Types
- * Types for managing the catalog of common device problems
- */
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 
-export interface CommonProblem {
-  id: string;
-  org_id: string;
-  problem_text: string;
-  category: string | null;
-  is_active: boolean;
-  display_order: number;
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
-}
+type CommonProblemRow = Tables<"common_problems">;
 
-export interface CreateCommonProblemData {
-  problem_text: string;
-  category?: string | null;
-  is_active?: boolean;
-  display_order?: number;
-}
+export type CommonProblem = CommonProblemRow;
 
-export interface UpdateCommonProblemData {
-  problem_text?: string;
-  category?: string | null;
-  is_active?: boolean;
-  display_order?: number;
-}
+export type CreateCommonProblemData = Omit<
+  TablesInsert<"common_problems">,
+  "id" | "org_id" | "created_at" | "updated_at" | "created_by"
+>;
+
+export type UpdateCommonProblemData = Omit<
+  TablesUpdate<"common_problems">,
+  "org_id" | "created_at" | "updated_at" | "created_by"
+>;
 
 export interface CommonProblemsFilters {
   category?: string;
