@@ -7,6 +7,7 @@ import type { Entrada, EstadoEntrada } from "@/types/entradas";
 import { useToast } from "@/context/ToastContext";
 import BudgetManager from "@/components/budgets/BudgetManager";
 import type { BudgetWithItems } from "@/types/budgets";
+import { PrintLabelButton } from "./PrintLabelButton";
 
 interface DetalleEntradaModalProps {
   entrada: Entrada;
@@ -133,14 +134,19 @@ export default function DetalleEntradaModal({
                 )}
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div className="flex items-center gap-6">
+              <div className="mr-2">
+                <PrintLabelButton entrada={entrada} variant="outline" size="sm" />
+              </div>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Flujo de Estados */}

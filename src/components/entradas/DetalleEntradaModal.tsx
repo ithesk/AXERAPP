@@ -5,6 +5,7 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import type { Entrada, EstadoEntrada } from "@/types/entradas";
 import { useToast } from "@/context/ToastContext";
+import { PrintLabelButton } from "./PrintLabelButton";
 
 interface DetalleEntradaModalProps {
   entrada: Entrada;
@@ -141,6 +142,9 @@ export default function DetalleEntradaModal({
                   </span>
                 )}
               </p>
+            </div>
+            <div>
+              <PrintLabelButton entrada={entrada} variant="outline" size="sm" />
             </div>
           </div>
 

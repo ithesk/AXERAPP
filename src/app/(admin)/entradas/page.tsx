@@ -7,6 +7,7 @@ import NuevaEntradaModal from "@/components/entradas/NuevaEntradaModal";
 import EditarEntradaModal from "@/components/entradas/EditarEntradaModal";
 import DetalleEntradaModalOld from "@/components/entradas/DetalleEntradaModalOptimized";
 import DetalleEntradaModalWithBudget from "@/components/entradas/DetalleEntradaModalWithBudget";
+import { PrintBatchLabelsButton } from "@/components/entradas/PrintBatchLabelsButton";
 import { PlusIcon } from "@/icons";
 import { Filter, ChevronDown, Check, ArrowUpDown, Settings2 } from "lucide-react";
 
@@ -678,13 +679,22 @@ export default function EntradasPage() {
             Gestión de dispositivos ingresados para reparación
           </p>
         </div>
-        <button
-          onClick={() => setIsNuevaModalOpen(true)}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white transition-all rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/30 hover:shadow-xl hover:shadow-brand-500/40 hover:scale-105 active:scale-95"
-        >
-          <PlusIcon />
-          Nueva Entrada
-        </button>
+        <div className="flex gap-3">
+          {sortedEntradas.length > 0 && (
+            <PrintBatchLabelsButton
+              entradas={sortedEntradas}
+              variant="outline"
+              size="md"
+            />
+          )}
+          <button
+            onClick={() => setIsNuevaModalOpen(true)}
+            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white transition-all rounded-xl bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 shadow-lg shadow-brand-500/30 hover:shadow-xl hover:shadow-brand-500/40 hover:scale-105 active:scale-95"
+          >
+            <PlusIcon />
+            Nueva Entrada
+          </button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
