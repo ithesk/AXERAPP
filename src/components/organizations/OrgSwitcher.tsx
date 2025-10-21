@@ -146,7 +146,7 @@ export function OrgSwitcher() {
 
               {currentOrg && (
                 <a
-                  href={`/dashboard/configuraciones/organizacion`}
+                  href={`/configuracion/organizacion`}
                   className="flex items-center gap-2 w-full px-2 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors text-sm"
                   onClick={() => setIsOpen(false)}
                 >

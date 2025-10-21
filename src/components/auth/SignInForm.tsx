@@ -39,8 +39,8 @@ export default function SignInForm() {
       if (signInError) {
         throw signInError;
       }
-      
-      router.push("/dashboard");
+
+      router.push("/entradas");
       router.refresh();
     } catch (err: unknown) {
       // Traducir mensajes de error comunes

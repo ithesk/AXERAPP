@@ -14,17 +14,18 @@ export async function middleware(req: NextRequest) {
   } = await supabase.auth.getSession();
 
   // Configurar redireccionamientos basados en la autenticación
+  const isLandingPage = req.nextUrl.pathname === '/';
   const isAuthRoute = req.nextUrl.pathname === '/signin' || req.nextUrl.pathname === '/signup';
-  const isPublicRoute = isAuthRoute || req.nextUrl.pathname.startsWith('/error-');
+  const isPublicRoute = isLandingPage || isAuthRoute || req.nextUrl.pathname.startsWith('/error-');
 
-  // Si no hay sesión y no es una ruta pública, redirigir a signin
+  // Si no hay sesión y no es una ruta pública, redirigir a landing page
   if (!session && !isPublicRoute) {
-    return NextResponse.redirect(new URL('/signin', req.url));
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
-  // Si hay sesión e intenta acceder a páginas de autenticación, redirigir a home
-  if (isAuthRoute && session) {
-    return NextResponse.redirect(new URL('/', req.url));
+  // Si hay sesión e intenta acceder a landing o páginas de autenticación, redirigir a dashboard
+  if ((isLandingPage || isAuthRoute) && session) {
+    return NextResponse.redirect(new URL('/entradas', req.url));
   }
 
   return res;
