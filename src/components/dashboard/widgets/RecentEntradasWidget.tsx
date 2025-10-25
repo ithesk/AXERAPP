@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { useOrganization } from '@/context/OrganizationContext';
-import type { Entrada } from '@/types/entradas';
+import type { EntradaConContacto } from '@/types/entradas';
 import { Clock, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 
@@ -17,7 +17,7 @@ interface RecentEntradasWidgetProps {
 export default function RecentEntradasWidget({ config }: RecentEntradasWidgetProps) {
   const supabase = createClientComponentClient();
   const { currentOrg } = useOrganization();
-  const [entradas, setEntradas] = useState<Entrada[]>([]);
+  const [entradas, setEntradas] = useState<EntradaConContacto[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export default function RecentEntradasWidget({ config }: RecentEntradasWidgetPro
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-600 dark:text-gray-400 truncate flex-1">
-                  {entrada.equipo}
+                  {entrada.modelo}
                 </span>
                 <span className="text-gray-500 dark:text-gray-500 ml-2">
                   {new Date(entrada.created_at).toLocaleDateString('es-ES', {

@@ -134,3 +134,11 @@ export interface EntradasFilters {
   fecha_desde?: string;
   fecha_hasta?: string;
 }
+
+// Tipo para entradas con datos de contacto (cuando se hace JOIN con contactos)
+export interface EntradaConContacto extends Entrada {
+  contacto?: {
+    nombre: string;
+    apellido: string;
+  } | null;
+}

@@ -15,7 +15,7 @@ interface Order {
   contacto?: {
     nombre: string;
     apellido: string;
-  };
+  } | null;
   items_count: number;
 }
 
@@ -49,6 +49,8 @@ export default function RecentOrdersWidget() {
         // Obtener conteo de items por venta (esto sería mejor con una relación real)
         const ordersWithCount = data?.map(order => ({
           ...order,
+          // Convertir contacto de array a objeto único (Supabase a veces retorna arrays)
+          contacto: Array.isArray(order.contacto) ? order.contacto[0] : order.contacto,
           items_count: 1, // Por ahora hardcodeado, debería venir de una tabla de items
         })) || [];
 

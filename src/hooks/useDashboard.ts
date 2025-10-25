@@ -55,17 +55,21 @@ export function useDashboard() {
       setWidgets(widgetsData);
 
       // Convertir widgets a layout
-      const layoutData: WidgetLayout[] = widgetsData.map((widget) => ({
-        i: widget.id,
-        x: widget.position_x,
-        y: widget.position_y,
-        w: widget.width,
-        h: widget.height,
-        minW: WIDGET_METADATA[widget.widget_type]?.minWidth,
-        minH: WIDGET_METADATA[widget.widget_type]?.minHeight,
-        maxW: WIDGET_METADATA[widget.widget_type]?.maxWidth,
-        maxH: WIDGET_METADATA[widget.widget_type]?.maxHeight,
-      }));
+      const layoutData: WidgetLayout[] = widgetsData.map((widget) => {
+        const widgetType = widget.widget_type as WidgetType;
+        const metadata = WIDGET_METADATA[widgetType];
+        return {
+          i: widget.id,
+          x: widget.position_x,
+          y: widget.position_y,
+          w: widget.width,
+          h: widget.height,
+          minW: metadata?.minWidth,
+          minH: metadata?.minHeight,
+          maxW: metadata?.maxWidth,
+          maxH: metadata?.maxHeight,
+        };
+      });
 
       setLayout(layoutData);
     } catch (error) {
