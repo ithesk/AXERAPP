@@ -1,10 +1,8 @@
-// =====================================================
-// TYPES: Sistema de Presupuestos
-// =====================================================
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 
-export type BudgetStatus = 'draft' | 'sent' | 'approved' | 'rejected';
+export type BudgetStatus = Tables<"budgets">["status"];
 
-export type BudgetItemType = 'part' | 'labor';
+export type BudgetItemType = Tables<"budget_items">["item_type"];
 
 export const BUDGET_STATUS_LABELS: Record<BudgetStatus, string> = {
   draft: 'Borrador',
@@ -18,64 +16,29 @@ export const BUDGET_ITEM_TYPE_LABELS: Record<BudgetItemType, string> = {
   labor: 'Mano de Obra',
 };
 
+type BudgetItemRow = Tables<"budget_items">;
+type BudgetRow = Tables<"budgets">;
+
 // =====================================================
 // INTERFACES
 // =====================================================
 
-export interface BudgetItem {
-  id: string;
-  budget_id: string;
-  item_type: BudgetItemType;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  subtotal: number; // Calculado automáticamente en la BD
-  discount_percentage?: number;
-  tax_percentage?: number;
-  sku?: string | null;
-  notes?: string | null;
-  sort_order?: number;
-  display_order?: number;
-  created_at: string;
-  updated_at: string;
-
-  // Nuevos campos para productos
-  product_id?: string | null;
-  is_custom: boolean; // true = item manual, false = producto del catálogo
-
-  // Relaciones (cargadas por separado si es necesario)
-  product?: import('./products').Product;
+export interface BudgetItem
+  extends Omit<BudgetItemRow, "product_id" | "created_at" | "updated_at"> {
+  product_id: BudgetItemRow["product_id"];
+  product?: import("./products").Product;
 }
 
-export interface Budget {
-  id: string;
-  entrada_id: string;
-  org_id: string;
-  status: BudgetStatus;
-
-  // Totales
-  subtotal_parts: number;
-  subtotal_labor: number;
-  tax_percentage: number;
-  tax_amount: number;
-  discount_percentage: number;
-  discount_amount: number;
-  total: number;
-
-  // Notas y validez
-  notes?: string | null;
-  valid_until?: string | null;
-
-  // Fechas de aprobación/rechazo
-  approved_at?: string | null;
-  rejected_at?: string | null;
-
-  // Timestamps
-  created_at: string;
-  updated_at: string;
-  created_by?: string | null;
-
-  // Relaciones (se cargan por separado)
+export interface Budget
+  extends Omit<
+    BudgetRow,
+    | "created_at"
+    | "updated_at"
+    | "created_by"
+  > {
+  created_at: BudgetRow["created_at"];
+  updated_at: BudgetRow["updated_at"];
+  created_by: BudgetRow["created_by"];
   items?: BudgetItem[];
 }
 
@@ -83,55 +46,49 @@ export interface Budget {
 // CREATE/UPDATE INTERFACES
 // =====================================================
 
-export interface CreateBudgetItemData {
-  item_type: BudgetItemType;
-  description: string;
-  quantity: number;
-  unit_price: number;
-  sku?: string;
-  notes?: string;
-  display_order?: number;
-  sort_order?: number;
-  discount_percentage?: number;
-  tax_percentage?: number;
+type BudgetItemInsert = TablesInsert<"budget_items">;
+type BudgetItemUpdate = TablesUpdate<"budget_items">;
+type BudgetInsert = TablesInsert<"budgets">;
+type BudgetUpdate = TablesUpdate<"budgets">;
 
-  // Nuevos campos para productos
-  product_id?: string; // ID del producto del catálogo (opcional)
-  is_custom?: boolean; // true si es manual, false si viene de producto
-}
+export type CreateBudgetItemData = Omit<
+  BudgetItemInsert,
+  "id" | "budget_id" | "created_at" | "updated_at"
+>;
 
-export interface UpdateBudgetItemData {
-  description?: string;
-  quantity?: number;
-  unit_price?: number;
-  sku?: string | null;
-  notes?: string | null;
-  display_order?: number;
-  sort_order?: number;
-  discount_percentage?: number;
-  tax_percentage?: number;
+export type UpdateBudgetItemData = Omit<
+  BudgetItemUpdate,
+  "budget_id" | "created_at" | "updated_at"
+>;
 
-  // Nuevos campos para productos
-  product_id?: string | null;
-  is_custom?: boolean;
-}
-
-export interface CreateBudgetData {
-  entrada_id: string;
-  tax_percentage?: number;
-  discount_percentage?: number;
-  notes?: string;
-  valid_until?: string;
+export type CreateBudgetData = Omit<
+  BudgetInsert,
+  | "id"
+  | "org_id"
+  | "total"
+  | "subtotal_parts"
+  | "subtotal_labor"
+  | "tax_amount"
+  | "discount_amount"
+  | "status"
+  | "created_at"
+  | "updated_at"
+  | "created_by"
+> & {
   items?: CreateBudgetItemData[];
-}
+};
 
-export interface UpdateBudgetData {
-  status?: BudgetStatus;
-  tax_percentage?: number;
-  discount_percentage?: number;
-  notes?: string | null;
-  valid_until?: string | null;
-}
+export type UpdateBudgetData = Partial<
+  Omit<
+    BudgetUpdate,
+    | "id"
+    | "org_id"
+    | "entrada_id"
+    | "created_at"
+    | "updated_at"
+    | "created_by"
+  >
+>;
 
 // =====================================================
 // VISTA COMPLETA (Budget con Items)

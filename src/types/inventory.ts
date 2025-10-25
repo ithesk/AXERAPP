@@ -2,15 +2,11 @@
 // TYPES: Sistema de Inventario
 // =====================================================
 
-export type MovementType =
-  | 'purchase'       // Compra/Entrada de inventario
-  | 'sale'           // Venta/Salida de inventario
-  | 'adjustment'     // Ajuste manual de inventario
-  | 'return'         // Devolución
-  | 'budget_reserve' // Reserva por presupuesto aprobado
-  | 'budget_release' // Liberación por presupuesto rechazado/cancelado
-  | 'transfer_in'    // Transferencia entrante
-  | 'transfer_out';  // Transferencia saliente
+import type { Tables, TablesInsert } from "@/types/supabase";
+
+type InventoryMovementRow = Tables<"inventory_movements">;
+
+export type MovementType = InventoryMovementRow["movement_type"];
 
 export const MOVEMENT_TYPE_LABELS: Record<MovementType, string> = {
   purchase: 'Compra',
@@ -40,47 +36,35 @@ export type ReferenceType = 'budget' | 'sale' | 'purchase' | 'manual' | 'transfe
 // INTERFACES
 // =====================================================
 
-export interface InventoryMovement {
-  id: string;
-  org_id: string;
-  product_id: string;
-
-  // Tipo de movimiento
-  movement_type: MovementType;
-
-  // Cantidades
-  quantity: number; // Positivo = entrada, Negativo = salida
-  stock_before: number;
-  stock_after: number;
-
-  // Referencias
+export interface InventoryMovement
+  extends Omit<
+    InventoryMovementRow,
+    "reference_type" | "reference_id" | "unit_cost" | "total_cost"
+  > {
   reference_type: ReferenceType | null;
   reference_id: string | null;
-
-  // Costos (opcional)
   unit_cost: number | null;
   total_cost: number | null;
-
-  // Metadata
-  notes: string | null;
-  created_at: string;
-  created_by: string | null;
-
-  // Relaciones (cargadas por separado si es necesario)
-  product?: import('./products').Product;
+  product?: import("./products").Product;
 }
 
 // =====================================================
 // CREATE/UPDATE INTERFACES
 // =====================================================
 
-export interface CreateInventoryMovementData {
-  product_id: string;
-  movement_type: MovementType;
-  quantity: number;
-  reference_type?: ReferenceType;
-  reference_id?: string;
-  unit_cost?: number;
+export interface CreateInventoryMovementData
+  extends Omit<
+    TablesInsert<"inventory_movements">,
+    | "id"
+    | "org_id"
+    | "stock_before"
+    | "stock_after"
+    | "total_cost"
+    | "created_at"
+    | "created_by"
+  > {
+  reference_type?: ReferenceType | null;
+  reference_id?: string | null;
   notes?: string;
 }
 

@@ -148,7 +148,7 @@ export function MemberManagement() {
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {members.map((member) => {
-              const memberRole = (member.role ?? member.invited_role) as OrgRole;
+              const memberRole: OrgRole = member.role ?? "viewer";
               const RoleIcon = ROLE_ICONS[memberRole];
               const isCurrentUser = member.user_id === currentMembership?.user_id;
 
@@ -268,7 +268,7 @@ export function MemberManagement() {
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {invitations.map((invitation) => {
-              const invitationRole = (invitation.role ?? invitation.invited_role) as OrgRole;
+              const invitationRole = invitation.role as OrgRole;
               const RoleIcon = ROLE_ICONS[invitationRole];
               const isExpired =
                 new Date(invitation.expires_at) < new Date();

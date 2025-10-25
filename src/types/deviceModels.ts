@@ -60,44 +60,26 @@ export const COMMON_BRANDS = [
   "Otro",
 ] as const;
 
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
+
+type DeviceModelRow = Tables<"device_models">;
+
 // Modelo de dispositivo completo (desde la base de datos)
-export interface DeviceModel {
-  id: string;
-  org_id: string;
-  model_name: string;
-  brand: string | null;
-  category: string | null;
-  reference: string | null;
-  common_issues: string[];
-  repair_notes: string | null;
-  estimated_repair_time: number | null; // en minutos
-  usage_count: number;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
+export interface DeviceModel extends DeviceModelRow {
+  common_issues: string[] | null;
 }
 
 // Datos para crear un nuevo modelo
-export interface CreateDeviceModelData {
-  model_name: string;
-  brand?: string;
-  category?: string;
-  reference?: string;
-  common_issues?: string[];
-  repair_notes?: string;
-  estimated_repair_time?: number;
-}
+export type CreateDeviceModelData = Omit<
+  TablesInsert<"device_models">,
+  "id" | "org_id" | "created_at" | "updated_at" | "deleted_at" | "usage_count"
+>;
 
 // Datos para actualizar un modelo existente
-export interface UpdateDeviceModelData {
-  model_name?: string;
-  brand?: string | null;
-  category?: string | null;
-  reference?: string | null;
-  common_issues?: string[];
-  repair_notes?: string | null;
-  estimated_repair_time?: number | null;
-}
+export type UpdateDeviceModelData = Omit<
+  TablesUpdate<"device_models">,
+  "org_id" | "created_at" | "updated_at" | "deleted_at" | "usage_count"
+>;
 
 // Resultado de mutaciones (crear/actualizar/eliminar)
 export interface DeviceModelMutationResult {

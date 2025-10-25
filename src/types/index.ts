@@ -101,3 +101,12 @@ export {
   ACTION_LABELS,
   ENTITY_TYPE_LABELS,
 } from './audit';
+
+// WhatsApp Integration Types
+export type {
+  WhatsappSettings,
+  WhatsappSettingsInsert,
+  WhatsappSettingsUpdate,
+  WhatsappSettingsUpsertInput,
+  WhatsappSettingsResponse,
+} from './whatsapp';

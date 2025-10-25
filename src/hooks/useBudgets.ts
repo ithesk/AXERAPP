@@ -15,27 +15,60 @@ import type {
 } from "@/types/budgets";
 
 interface UseBudgetsReturn {
-  // Estado
   loading: boolean;
   error: string | null;
-
-  // Funciones principales
   getBudgetByEntrada: (entradaId: string) => Promise<BudgetWithItems | null>;
-  createBudget: (data: CreateBudgetData) => Promise<{ success: boolean; budget?: Budget; error?: string }>;
-  updateBudget: (budgetId: string, data: UpdateBudgetData) => Promise<{ success: boolean; error?: string }>;
-  deleteBudget: (budgetId: string) => Promise<{ success: boolean; error?: string }>;
-
-  // Funciones de items
-  addBudgetItem: (budgetId: string, item: CreateBudgetItemData) => Promise<{ success: boolean; item?: BudgetItem; error?: string }>;
-  updateBudgetItem: (itemId: string, data: UpdateBudgetItemData) => Promise<{ success: boolean; error?: string }>;
-  deleteBudgetItem: (itemId: string) => Promise<{ success: boolean; error?: string }>;
-
-  // Funciones de estado
-  updateBudgetStatus: (budgetId: string, status: BudgetStatus) => Promise<{ success: boolean; error?: string }>;
-  validateBudgetStock: (budgetId: string) => Promise<{ valid: boolean; errors: string[] }>;
-  approveBudget: (budgetId: string) => Promise<{ success: boolean; error?: string }>;
-  rejectBudget: (budgetId: string) => Promise<{ success: boolean; error?: string }>;
+  createBudget: (
+    data: CreateBudgetData
+  ) => Promise<{ success: boolean; budget?: Budget; error?: string }>;
+  updateBudget: (
+    budgetId: string,
+    data: UpdateBudgetData
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteBudget: (
+    budgetId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  addBudgetItem: (
+    budgetId: string,
+    item: CreateBudgetItemData
+  ) => Promise<{ success: boolean; item?: BudgetItem; error?: string }>;
+  updateBudgetItem: (
+    itemId: string,
+    data: UpdateBudgetItemData
+  ) => Promise<{ success: boolean; error?: string }>;
+  deleteBudgetItem: (
+    itemId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  updateBudgetStatus: (
+    budgetId: string,
+    status: BudgetStatus
+  ) => Promise<{ success: boolean; error?: string }>;
+  validateBudgetStock: (
+    budgetId: string,
+    options?: { orgId?: string }
+  ) => Promise<{ valid: boolean; errors: string[] }>;
+  approveBudget: (
+    budgetId: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  rejectBudget: (
+    budgetId: string
+  ) => Promise<{ success: boolean; error?: string }>;
 }
+
+type BudgetStockIssue = {
+  product_id: string;
+  product_name: string;
+  required_quantity: number;
+  available_stock: number;
+  missing_quantity: number;
+  stock_unit?: string | null;
+};
+
+const sanitizeBudgetItem = (raw: Record<string, unknown>): BudgetItem => {
+  const { budget, ...rest } = raw;
+  void budget;
+  return rest as BudgetItem;
+};
 
 export function useBudgets(): UseBudgetsReturn {
   const [loading, setLoading] = useState(false);
@@ -43,120 +76,174 @@ export function useBudgets(): UseBudgetsReturn {
   const { currentOrg } = useOrganization();
   const supabase = createClient();
 
-  // =====================================================
-  // OBTENER PRESUPUESTO POR ENTRADA
-  // =====================================================
+  const requireOrgId = useCallback(() => {
+    if (!currentOrg?.id) {
+      throw new Error("No hay organización seleccionada");
+    }
+    return currentOrg.id;
+  }, [currentOrg?.id]);
+
+  const ensureBudgetOwnership = useCallback(
+    async (budgetId: string) => {
+      const orgId = requireOrgId();
+      const { data, error: ownershipError } = await supabase
+        .from("budgets")
+        .select("id")
+        .eq("id", budgetId)
+        .eq("org_id", orgId)
+        .single();
+
+      if (ownershipError || !data) {
+        if (ownershipError?.code === "PGRST116") {
+          throw new Error("Presupuesto no encontrado");
+        }
+        throw ownershipError ?? new Error("No se pudo validar el presupuesto");
+      }
+
+      return { orgId, budgetId: data.id };
+    },
+    [requireOrgId, supabase]
+  );
+
+  const ensureBudgetItemOwnership = useCallback(
+    async (itemId: string) => {
+      const orgId = requireOrgId();
+      const { data, error: ownershipError } = await supabase
+        .from("budget_items")
+        .select(
+          `
+            id,
+            budget_id,
+            budget:budgets!inner(id, org_id)
+          `
+        )
+        .eq("id", itemId)
+        .eq("budget.org_id", orgId)
+        .single();
+
+      if (ownershipError || !data) {
+        if (ownershipError?.code === "PGRST116") {
+          throw new Error("Item de presupuesto no encontrado");
+        }
+        throw ownershipError ?? new Error("No se pudo validar el item del presupuesto");
+      }
+
+      return { orgId, budgetId: data.budget_id };
+    },
+    [requireOrgId, supabase]
+  );
+
   const getBudgetByEntrada = useCallback(
     async (entradaId: string): Promise<BudgetWithItems | null> => {
       try {
         setLoading(true);
         setError(null);
 
-        if (!currentOrg?.id) {
-          throw new Error("No hay organización seleccionada");
-        }
+        const orgId = requireOrgId();
 
-        // Obtener presupuesto
         const { data: budget, error: budgetError } = await supabase
           .from("budgets")
           .select("*")
           .eq("entrada_id", entradaId)
-          .eq("org_id", currentOrg.id)
+          .eq("org_id", orgId)
           .single();
 
         if (budgetError) {
           if (budgetError.code === "PGRST116") {
-            // No existe presupuesto para esta entrada
             return null;
           }
           throw budgetError;
         }
 
-        // Obtener items del presupuesto con productos relacionados
         const { data: items, error: itemsError } = await supabase
           .from("budget_items")
-          .select(`
-            *,
-            product:products(*)
-          `)
+          .select(
+            `
+              *,
+              product:products(*),
+              budget:budgets!inner(id, org_id)
+            `
+          )
           .eq("budget_id", budget.id)
-          .order("sort_order", { ascending: true });
+          .eq("budget.org_id", orgId)
+          .order("display_order", { ascending: true });
 
         if (itemsError) throw itemsError;
 
+        const sanitizedItems = (items ?? []).map((item) => sanitizeBudgetItem(item));
+
         return {
           ...budget,
-          items: items || [],
+          items: sanitizedItems,
         } as BudgetWithItems;
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al obtener presupuesto:", err);
-        setError(err.message);
+        const message =
+          err instanceof Error ? err.message : "Error al obtener presupuesto";
+        setError(message);
         return null;
       } finally {
         setLoading(false);
       }
     },
-    [currentOrg?.id, supabase]
+    [requireOrgId, supabase]
   );
 
-  // =====================================================
-  // CREAR PRESUPUESTO
-  // =====================================================
   const createBudget = useCallback(
     async (data: CreateBudgetData) => {
       try {
         setLoading(true);
         setError(null);
 
-        if (!currentOrg?.id) {
-          throw new Error("No hay organización seleccionada");
-        }
+        const orgId = requireOrgId();
 
-        // Verificar que la entrada existe y pertenece a la org
         const { data: entrada, error: entradaError } = await supabase
           .from("entradas")
-          .select("id, org_id")
+          .select("id")
           .eq("id", data.entrada_id)
-          .eq("org_id", currentOrg.id)
+          .eq("org_id", orgId)
           .single();
 
         if (entradaError || !entrada) {
           throw new Error("Entrada no encontrada");
         }
 
-        // Verificar que no exista ya un presupuesto para esta entrada
-        const { data: existingBudget } = await supabase
+        const { data: existingBudget, error: existingBudgetError } = await supabase
           .from("budgets")
           .select("id")
           .eq("entrada_id", data.entrada_id)
+          .eq("org_id", orgId)
           .single();
+
+        if (existingBudgetError && existingBudgetError.code !== "PGRST116") {
+          throw existingBudgetError;
+        }
 
         if (existingBudget) {
           throw new Error("Ya existe un presupuesto para esta entrada");
         }
 
-        // Obtener user ID
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
 
-        // Crear presupuesto
         const { data: budget, error: budgetError } = await supabase
           .from("budgets")
           .insert({
             entrada_id: data.entrada_id,
-            org_id: currentOrg.id,
+            org_id: orgId,
             status: "draft",
-            tax_percentage: data.tax_percentage || 0,
-            discount_percentage: data.discount_percentage || 0,
-            notes: data.notes || null,
-            valid_until: data.valid_until || null,
-            created_by: user?.id || null,
+            tax_percentage: data.tax_percentage ?? 0,
+            discount_percentage: data.discount_percentage ?? 0,
+            notes: data.notes ?? null,
+            valid_until: data.valid_until ?? null,
+            created_by: user?.id ?? null,
           })
           .select()
           .single();
 
         if (budgetError) throw budgetError;
 
-        // Crear items si se proporcionaron
         if (data.items && data.items.length > 0) {
           const itemsToInsert = data.items.map((item, index) => ({
             budget_id: budget.id,
@@ -164,9 +251,11 @@ export function useBudgets(): UseBudgetsReturn {
             description: item.description,
             quantity: item.quantity,
             unit_price: item.unit_price,
-            sku: item.sku || null,
-            notes: item.notes || null,
+            sku: item.sku ?? null,
+            notes: item.notes ?? null,
             display_order: item.display_order ?? index,
+            product_id: item.product_id ?? null,
+            is_custom: item.is_custom ?? !item.product_id,
           }));
 
           const { error: itemsError } = await supabase
@@ -177,26 +266,26 @@ export function useBudgets(): UseBudgetsReturn {
         }
 
         return { success: true, budget };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al crear presupuesto:", err);
-        const errorMessage = err.message || "Error al crear presupuesto";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message =
+          err instanceof Error ? err.message : "Error al crear presupuesto";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [currentOrg?.id, supabase]
+    [requireOrgId, supabase]
   );
 
-  // =====================================================
-  // ACTUALIZAR PRESUPUESTO
-  // =====================================================
   const updateBudget = useCallback(
     async (budgetId: string, data: UpdateBudgetData) => {
       try {
         setLoading(true);
         setError(null);
+
+        const { orgId } = await ensureBudgetOwnership(budgetId);
 
         const { error: updateError } = await supabase
           .from("budgets")
@@ -204,61 +293,62 @@ export function useBudgets(): UseBudgetsReturn {
             ...data,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", budgetId);
+          .eq("id", budgetId)
+          .eq("org_id", orgId);
 
         if (updateError) throw updateError;
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al actualizar presupuesto:", err);
-        const errorMessage = err.message || "Error al actualizar presupuesto";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message =
+          err instanceof Error ? err.message : "Error al actualizar presupuesto";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetOwnership, supabase]
   );
 
-  // =====================================================
-  // ELIMINAR PRESUPUESTO
-  // =====================================================
   const deleteBudget = useCallback(
     async (budgetId: string) => {
       try {
         setLoading(true);
         setError(null);
 
-        // Los items se eliminan automáticamente por CASCADE
+        const { orgId } = await ensureBudgetOwnership(budgetId);
+
         const { error: deleteError } = await supabase
           .from("budgets")
           .delete()
-          .eq("id", budgetId);
+          .eq("id", budgetId)
+          .eq("org_id", orgId);
 
         if (deleteError) throw deleteError;
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al eliminar presupuesto:", err);
-        const errorMessage = err.message || "Error al eliminar presupuesto";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message =
+          err instanceof Error ? err.message : "Error al eliminar presupuesto";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetOwnership, supabase]
   );
 
-  // =====================================================
-  // AGREGAR ITEM AL PRESUPUESTO
-  // =====================================================
   const addBudgetItem = useCallback(
     async (budgetId: string, itemData: CreateBudgetItemData) => {
       try {
         setLoading(true);
         setError(null);
+
+        await ensureBudgetOwnership(budgetId);
 
         const { data: item, error: insertError } = await supabase
           .from("budget_items")
@@ -268,244 +358,277 @@ export function useBudgets(): UseBudgetsReturn {
             description: itemData.description,
             quantity: itemData.quantity,
             unit_price: itemData.unit_price,
-            sku: itemData.sku || null,
-            notes: itemData.notes || null,
+            sku: itemData.sku ?? null,
+            notes: itemData.notes ?? null,
             display_order: itemData.display_order ?? 0,
+            product_id: itemData.product_id ?? null,
+            is_custom: itemData.is_custom ?? !itemData.product_id,
           })
-          .select()
+          .select(
+            `
+              *,
+              product:products(*),
+              budget:budgets!inner(id, org_id)
+            `
+          )
           .single();
 
         if (insertError) throw insertError;
 
-        return { success: true, item };
-      } catch (err: any) {
+        return { success: true, item: sanitizeBudgetItem(item) };
+      } catch (err) {
         console.error("[useBudgets] Error al agregar item:", err);
-        const errorMessage = err.message || "Error al agregar item";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message = err instanceof Error ? err.message : "Error al agregar item";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetOwnership, supabase]
   );
 
-  // =====================================================
-  // ACTUALIZAR ITEM
-  // =====================================================
   const updateBudgetItem = useCallback(
     async (itemId: string, data: UpdateBudgetItemData) => {
       try {
         setLoading(true);
         setError(null);
 
+        const { budgetId } = await ensureBudgetItemOwnership(itemId);
+
+        const updates = { ...data } as Record<string, unknown>;
+        delete updates.subtotal;
+        delete updates.sort_order;
+
         const { error: updateError } = await supabase
           .from("budget_items")
           .update({
-            ...data,
+            ...updates,
             updated_at: new Date().toISOString(),
           })
-          .eq("id", itemId);
+          .eq("id", itemId)
+          .eq("budget_id", budgetId);
 
         if (updateError) throw updateError;
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al actualizar item:", err);
-        const errorMessage = err.message || "Error al actualizar item";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message = err instanceof Error ? err.message : "Error al actualizar item";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetItemOwnership, supabase]
   );
 
-  // =====================================================
-  // ELIMINAR ITEM
-  // =====================================================
   const deleteBudgetItem = useCallback(
     async (itemId: string) => {
       try {
         setLoading(true);
         setError(null);
 
+        const { budgetId } = await ensureBudgetItemOwnership(itemId);
+
         const { error: deleteError } = await supabase
           .from("budget_items")
           .delete()
-          .eq("id", itemId);
+          .eq("id", itemId)
+          .eq("budget_id", budgetId);
 
         if (deleteError) throw deleteError;
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al eliminar item:", err);
-        const errorMessage = err.message || "Error al eliminar item";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message = err instanceof Error ? err.message : "Error al eliminar item";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetItemOwnership, supabase]
   );
 
-  // =====================================================
-  // ACTUALIZAR ESTADO DEL PRESUPUESTO
-  // =====================================================
   const updateBudgetStatus = useCallback(
     async (budgetId: string, status: BudgetStatus) => {
       try {
         setLoading(true);
         setError(null);
 
-        const updateData: any = {
+        const { orgId } = await ensureBudgetOwnership(budgetId);
+
+        const updateData: Partial<Budget> & {
+          status: BudgetStatus;
+          updated_at: string;
+        } = {
           status,
           updated_at: new Date().toISOString(),
         };
 
-        // Agregar timestamp según el estado
         if (status === "approved") {
           updateData.approved_at = new Date().toISOString();
+          updateData.rejected_at = null;
         } else if (status === "rejected") {
           updateData.rejected_at = new Date().toISOString();
+          updateData.approved_at = null;
+        } else {
+          updateData.approved_at = null;
+          updateData.rejected_at = null;
         }
 
         const { error: updateError } = await supabase
           .from("budgets")
           .update(updateData)
-          .eq("id", budgetId);
+          .eq("id", budgetId)
+          .eq("org_id", orgId);
 
         if (updateError) throw updateError;
 
         return { success: true };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al actualizar estado:", err);
-        const errorMessage = err.message || "Error al actualizar estado";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message = err instanceof Error ? err.message : "Error al actualizar estado";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [supabase]
+    [ensureBudgetOwnership, supabase]
   );
 
-  // =====================================================
-  // VALIDAR STOCK ANTES DE APROBAR
-  // =====================================================
   const validateBudgetStock = useCallback(
-    async (budgetId: string): Promise<{ valid: boolean; errors: string[] }> => {
+    async (budgetId: string, options?: { orgId?: string }) => {
       try {
-        const { data, error } = await supabase.rpc("validate_budget_stock", {
-          p_budget_id: budgetId,
-        });
+        if (!options?.orgId) {
+          await ensureBudgetOwnership(budgetId);
+        }
 
-        if (error) throw error;
+        const { data, error: rpcError } = await supabase.rpc(
+          "validate_budget_stock",
+          {
+            p_budget_id: budgetId,
+          }
+        );
 
-        if (!data || data.length === 0) {
+        if (rpcError) throw rpcError;
+
+        const issues = (data ?? []) as BudgetStockIssue[];
+
+        if (issues.length === 0) {
           return { valid: true, errors: [] };
         }
 
-        const errors = data.map((item: any) => {
-          return `${item.product_name}: Requiere ${item.required_quantity} ${item.stock_unit || "unidades"}, disponible ${item.available_stock}`;
+        const errors = issues.map((item) => {
+          return `${item.product_name}: Requiere ${Number(item.required_quantity)} unidades, disponible ${Number(item.available_stock)}`;
         });
 
         return { valid: false, errors };
-      } catch (err: any) {
+      } catch (err) {
         console.error("[useBudgets] Error al validar stock:", err);
-        return { valid: false, errors: ["Error al validar stock del presupuesto"] };
+        return {
+          valid: false,
+          errors: [
+            err instanceof Error
+              ? err.message
+              : "Error al validar stock del presupuesto",
+          ],
+        };
       }
     },
-    [supabase]
+    [ensureBudgetOwnership, supabase]
   );
 
-  // =====================================================
-  // APROBAR PRESUPUESTO (con reserva de inventario)
-  // =====================================================
   const approveBudget = useCallback(
     async (budgetId: string) => {
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Validar stock disponible
-        const stockValidation = await validateBudgetStock(budgetId);
+        const { orgId } = await ensureBudgetOwnership(budgetId);
+
+        const stockValidation = await validateBudgetStock(budgetId, { orgId });
         if (!stockValidation.valid) {
-          const errorMessage = `Stock insuficiente:\n${stockValidation.errors.join("\n")}`;
-          setError(errorMessage);
-          return { success: false, error: errorMessage };
+          const message = `Stock insuficiente:\n${stockValidation.errors.join("\n")}`;
+          setError(message);
+          return { success: false, error: message };
         }
 
-        // 2. Reservar inventario (usando función SQL)
-        const { error: reserveError } = await supabase.rpc("reserve_budget_inventory", {
-          p_budget_id: budgetId,
-        });
+        const { error: reserveError } = await supabase.rpc(
+          "reserve_budget_inventory",
+          {
+            p_budget_id: budgetId,
+          }
+        );
 
         if (reserveError) {
-          throw new Error(`Error al reservar inventario: ${reserveError.message}`);
+          throw new Error(
+            `Error al reservar inventario: ${reserveError.message}`
+          );
         }
 
-        // 3. Actualizar estado del presupuesto
-        const result = await updateBudgetStatus(budgetId, "approved");
-
-        return result;
-      } catch (err: any) {
+        return await updateBudgetStatus(budgetId, "approved");
+      } catch (err) {
         console.error("[useBudgets] Error al aprobar presupuesto:", err);
-        const errorMessage = err.message || "Error al aprobar presupuesto";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message =
+          err instanceof Error ? err.message : "Error al aprobar presupuesto";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [updateBudgetStatus, validateBudgetStock, supabase]
+    [ensureBudgetOwnership, supabase, updateBudgetStatus, validateBudgetStock]
   );
 
-  // =====================================================
-  // RECHAZAR PRESUPUESTO (con liberación de inventario)
-  // =====================================================
   const rejectBudget = useCallback(
     async (budgetId: string) => {
       try {
         setLoading(true);
         setError(null);
 
-        // 1. Verificar si el presupuesto estaba aprobado
+        const { orgId } = await ensureBudgetOwnership(budgetId);
+
         const { data: budget, error: fetchError } = await supabase
           .from("budgets")
           .select("status")
           .eq("id", budgetId)
+          .eq("org_id", orgId)
           .single();
 
         if (fetchError) throw fetchError;
 
-        // 2. Si estaba aprobado, liberar inventario reservado
         if (budget?.status === "approved") {
-          const { error: releaseError } = await supabase.rpc("release_budget_inventory", {
-            p_budget_id: budgetId,
-          });
+          const { error: releaseError } = await supabase.rpc(
+            "release_budget_inventory",
+            {
+              p_budget_id: budgetId,
+            }
+          );
 
           if (releaseError) {
-            throw new Error(`Error al liberar inventario: ${releaseError.message}`);
+            throw new Error(
+              `Error al liberar inventario: ${releaseError.message}`
+            );
           }
         }
 
-        // 3. Actualizar estado del presupuesto
-        const result = await updateBudgetStatus(budgetId, "rejected");
-
-        return result;
-      } catch (err: any) {
+        return await updateBudgetStatus(budgetId, "rejected");
+      } catch (err) {
         console.error("[useBudgets] Error al rechazar presupuesto:", err);
-        const errorMessage = err.message || "Error al rechazar presupuesto";
-        setError(errorMessage);
-        return { success: false, error: errorMessage };
+        const message =
+          err instanceof Error ? err.message : "Error al rechazar presupuesto";
+        setError(message);
+        return { success: false, error: message };
       } finally {
         setLoading(false);
       }
     },
-    [updateBudgetStatus, supabase]
+    [ensureBudgetOwnership, supabase, updateBudgetStatus]
   );
 
   return {

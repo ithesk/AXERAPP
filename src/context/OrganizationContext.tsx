@@ -323,7 +323,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
         viewer: ['read'],
       };
 
-      const memberRole = currentMembership.role ?? currentMembership.invited_role;
+      const memberRole = currentMembership.role;
       if (!memberRole) return false;
 
       const permissions = rolePermissions[memberRole] || [];
@@ -335,7 +335,7 @@ export function OrganizationProvider({ children }: { children: React.ReactNode }
   const hasRole = useCallback(
     (roles: OrgRole[]): boolean => {
       if (!currentMembership) return false;
-      const memberRole = currentMembership.role ?? currentMembership.invited_role;
+      const memberRole = currentMembership.role;
       if (!memberRole) return false;
       return roles.includes(memberRole);
     },

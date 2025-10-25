@@ -1,63 +1,37 @@
-// =====================================================
-// Organization Types - Multi-Tenant System
-// =====================================================
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
+
+type OrganizationRow = Tables<"organizations">;
+type OrgMemberRow = Tables<"org_members">;
+type InvitationRow = Tables<"invitations">;
+type OrgSettingsRow = Tables<"org_settings">;
 
 // Roles disponibles en una organización
-export type OrgRole = 'owner' | 'admin' | 'technician' | 'viewer';
+export type OrgRole = OrgMemberRow["role"];
 
 // Estados de membresía
-export type OrgMemberStatus = 'active' | 'invited' | 'suspended';
+export type OrgMemberStatus = OrgMemberRow["status"];
 
 // Estados de suscripción
-export type SubscriptionStatus =
-  | 'trial'
-  | 'active'
-  | 'cancelled'
-  | 'suspended'
-  | 'past_due';
+export type SubscriptionStatus = OrganizationRow["subscription_status"];
 
 // Planes de suscripción disponibles
-export type SubscriptionPlan = 'free' | 'starter' | 'professional' | 'enterprise';
+export type SubscriptionPlan = OrganizationRow["subscription_plan"];
 
 // Módulos disponibles en el sistema
-export type Module = 'entradas' | 'ventas' | 'compras' | 'inventario';
+export type Module = Extract<
+  OrganizationRow["modules_enabled"][number],
+  "entradas" | "ventas" | "compras" | "inventario"
+>;
 
 // =====================================================
 // Organization Interface
 // =====================================================
 
-export interface Organization {
-  id: string;
-  name: string;
-  slug: string;
-  owner_id: string;
-
-  // Configuración
+export interface Organization
+  extends Omit<OrganizationRow, "branding" | "settings" | "modules_enabled"> {
   settings: Record<string, unknown>;
   branding: OrganizationBranding;
-
-  // Suscripción
-  subscription_status: SubscriptionStatus;
-  subscription_plan: SubscriptionPlan;
-  trial_ends_at: string | null;
-
-  // Límites del plan
-  max_users: number;
-  max_entradas_per_month: number;
   modules_enabled: Module[];
-
-  // Stripe
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
-
-  // Regional
-  timezone: string;
-  locale: string;
-
-  // Metadata
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
 }
 
 // =====================================================
@@ -68,131 +42,59 @@ export interface OrganizationBranding {
   logo_url?: string | null;
   primary_color?: string;
   secondary_color?: string;
+  [key: string]: unknown;
 }
 
 // =====================================================
 // Organization Member
 // =====================================================
 
-export interface OrgMember {
-  id: string;
-  org_id: string;
-  user_id: string;
-  invited_role: OrgRole;
-  role: OrgRole | null;
-  status: OrgMemberStatus;
-
-  // Invitación
-  invited_by: string | null;
-  invited_at: string | null;
-  joined_at: string | null;
-
-  // Metadata
-  created_at: string;
-  updated_at: string;
-
-  // Datos relacionados (joins)
+export interface OrgMember extends OrgMemberRow {
   user?: {
-    email: string;
+    email: string | null;
     first_name: string | null;
     last_name: string | null;
     avatar_url: string | null;
-  };
+  } | null;
 
-  organization?: Pick<Organization, 'id' | 'name' | 'slug'>;
+  organization?: Pick<Organization, "id" | "name" | "slug">;
 }
 
 // =====================================================
 // Invitation
 // =====================================================
 
-export interface Invitation {
-  id: string;
-  org_id: string;
-  email: string;
-  invited_role: OrgRole;
-  role?: OrgRole | null;
-  invited_by: string;
-  token: string;
-  expires_at: string;
-  accepted_at: string | null;
-  created_at: string;
-
-  // Datos relacionados
-  organization?: Pick<Organization, 'id' | 'name' | 'slug'>;
+export interface Invitation extends InvitationRow {
+  organization?: Pick<Organization, "id" | "name" | "slug">;
   inviter?: {
-    email: string;
+    email: string | null;
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null;
 }
 
 // =====================================================
 // Organization Settings
 // =====================================================
 
-export interface OrgSettings {
-  id: string;
-  org_id: string;
-
-  // Configuraciones de Entradas
-  entrada_prefix: string;
-  entrada_sequence_start: number;
-  entrada_default_status: string;
+export interface OrgSettings
+  extends Omit<
+    OrgSettingsRow,
+    | "entrada_estados_custom"
+    | "email_templates"
+    | "custom_fields_entradas"
+    | "custom_fields_ventas"
+    | "custom_fields_compras"
+    | "custom_fields_inventario"
+    | "integrations"
+  > {
   entrada_estados_custom: string[] | null;
-
-  // Facturación
-  tax_id: string | null;
-  tax_name: string;
-  tax_rate: number;
-  invoice_prefix: string;
-  invoice_sequence_start: number;
-  invoice_footer: string | null;
-
-  // Email/Notificaciones
-  email_notifications_enabled: boolean;
-  email_from_name: string | null;
-  email_from_address: string | null;
-  email_signature: string | null;
   email_templates: Record<string, unknown>;
-
-  // Branding
-  logo_url: string | null;
-  primary_color: string;
-  secondary_color: string;
-  accent_color: string;
-
-  // Impresión
-  print_header: string | null;
-  print_footer: string | null;
-  print_paper_size: 'letter' | 'a4' | 'ticket';
-
-  // Campos personalizados
   custom_fields_entradas: Record<string, unknown>[];
   custom_fields_ventas: Record<string, unknown>[];
   custom_fields_compras: Record<string, unknown>[];
   custom_fields_inventario: Record<string, unknown>[];
-
-  // Integraciones
   integrations: Record<string, unknown>;
-
-  // Seguridad
-  require_2fa: boolean;
-  session_timeout_minutes: number;
-  password_expiry_days: number | null;
-
-  // Formato
-  date_format: string;
-  time_format: '12h' | '24h';
-  currency: string;
-  currency_symbol: string;
-  currency_position: 'before' | 'after';
-  decimal_separator: string;
-  thousands_separator: string;
-
-  // Metadata
-  created_at: string;
-  updated_at: string;
 }
 
 // =====================================================
@@ -218,28 +120,32 @@ export interface OrganizationWithStats extends Organization {
   member_count: number;
   current_usage: OrgUsageStats;
   is_owner: boolean;
-  current_user_invited_role: OrgRole;
+  current_user_invited_role: OrgRole | null;
 }
 
 // =====================================================
 // DTOs (Data Transfer Objects)
 // =====================================================
 
+type OrganizationInsert = TablesInsert<"organizations">;
+type OrganizationUpdate = TablesUpdate<"organizations">;
+
 export interface CreateOrganizationData {
-  name: string;
-  slug: string;
-  subscription_plan?: SubscriptionPlan;
-  timezone?: string;
-  locale?: string;
+  name: OrganizationInsert["name"];
+  slug: OrganizationInsert["slug"];
+  subscription_plan?: OrganizationInsert["subscription_plan"];
+  timezone?: OrganizationInsert["timezone"];
+  locale?: OrganizationInsert["locale"];
 }
 
-export interface UpdateOrganizationData {
-  name?: string;
-  slug?: string;
-  settings?: Record<string, unknown>;
-  branding?: Partial<OrganizationBranding>;
-  timezone?: string;
-  locale?: string;
+export interface UpdateOrganizationData
+  extends Partial<
+    Pick<
+      OrganizationUpdate,
+      "name" | "slug" | "settings" | "timezone" | "locale"
+    >
+  > {
+  branding?: Partial<OrganizationBranding> | OrganizationUpdate["branding"];
 }
 
 export interface InviteMemberData {
@@ -252,7 +158,9 @@ export interface UpdateMemberRoleData {
   role: OrgRole;
 }
 
-export type UpdateOrgSettingsData = Partial<Omit<OrgSettings, 'id' | 'org_id' | 'created_at' | 'updated_at'>>;
+export type UpdateOrgSettingsData = Partial<
+  Omit<OrgSettings, "id" | "org_id" | "created_at" | "updated_at">
+>;
 
 // =====================================================
 // Permission Helpers

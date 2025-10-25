@@ -159,7 +159,8 @@ export function useNotifications(
           read_at: new Date().toISOString(),
         })
         .eq("id", id)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("org_id", currentOrg.id);
 
       if (updateError) {
         console.error("[useNotifications] Mark as read error:", updateError);
@@ -200,7 +201,8 @@ export function useNotifications(
           read_at: new Date().toISOString(),
         })
         .eq("user_id", userId)
-        .eq("is_read", false);
+        .eq("is_read", false)
+        .eq("org_id", currentOrg.id);
 
       if (updateError) {
         console.error("[useNotifications] Mark all as read error:", updateError);
@@ -233,7 +235,8 @@ export function useNotifications(
         .from("notifications")
         .delete()
         .eq("id", id)
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("org_id", currentOrg.id);
 
       if (deleteError) {
         console.error("[useNotifications] Delete error:", deleteError);

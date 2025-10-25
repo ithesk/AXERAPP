@@ -2,9 +2,12 @@
 // TYPES: Sistema de Productos
 // =====================================================
 
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
 import type { Brand, Category, Tag } from './product-attributes';
 
-export type ProductType = 'part' | 'service';
+type ProductRow = Tables<"products">;
+
+export type ProductType = ProductRow["product_type"];
 
 export const PRODUCT_TYPE_LABELS: Record<ProductType, string> = {
   part: 'Pieza',
@@ -35,127 +38,49 @@ export type StockUnit = typeof STOCK_UNITS[number];
 // INTERFACES
 // =====================================================
 
-export interface Product {
-  id: string;
-  org_id: string;
-
-  // Información básica
-  name: string;
-  description: string | null;
-  sku: string | null;
-
-  // Tipo de producto
-  product_type: ProductType;
-
-  // Precio y costos
-  sale_price: number;
-  cost_price: number;
-
-  // Inventario (solo para product_type = 'part')
-  track_inventory: boolean;
-  current_stock: number;
-  min_stock: number;
-  max_stock: number | null;
-  stock_unit: string;
-
-  // Categorización (ahora con IDs)
-  category_id: string | null;
-  brand_id: string | null;
-
-  // Relaciones cargadas
+export interface Product extends ProductRow {
   category?: Category | null;
   brand?: Brand | null;
   tags?: Tag[];
-
-  // Estado
-  is_active: boolean;
-
-  // Metadata
-  notes: string | null;
-  image_url: string | null;
-  barcode: string | null;
-
-  // Timestamps
-  created_at: string;
-  updated_at: string;
-  created_by: string | null;
 }
 
 // =====================================================
 // CREATE/UPDATE INTERFACES
 // =====================================================
 
-export interface CreateProductData {
-  // Información básica
-  name: string;
-  description?: string;
-  sku?: string;
+type ProductInsert = TablesInsert<"products">;
+type ProductUpdate = TablesUpdate<"products">;
 
-  // Tipo de producto
-  product_type: ProductType;
-
-  // Precio y costos
-  sale_price: number;
-  cost_price?: number;
-
-  // Inventario (solo para product_type = 'part')
-  track_inventory?: boolean;
-  current_stock?: number;
-  min_stock?: number;
-  max_stock?: number;
-  stock_unit?: string;
-
-  // Categorización (ahora son IDs)
-  category_id?: string;
-  brand_id?: string;
-  tag_ids?: string[]; // Array de IDs de tags
-  // Compatibilidad temporal mientras se completa la migración a IDs
+export interface CreateProductData
+  extends Omit<
+    ProductInsert,
+    | "id"
+    | "org_id"
+    | "created_at"
+    | "updated_at"
+    | "created_by"
+  > {
+  tag_ids?: string[];
   category?: string;
   brand?: string;
   tags?: string[];
-
-  // Metadata
-  notes?: string;
-  image_url?: string;
-  barcode?: string;
 }
 
-export interface UpdateProductData {
-  // Información básica
-  name?: string;
-  description?: string | null;
-  sku?: string | null;
-
-  // Tipo de producto (normalmente no se debe cambiar después de creado)
-  product_type?: ProductType;
-
-  // Precio y costos
-  sale_price?: number;
-  cost_price?: number;
-
-  // Inventario
-  track_inventory?: boolean;
-  current_stock?: number; // Normalmente no se actualiza directamente, se usa inventory_movements
-  min_stock?: number;
-  max_stock?: number | null;
-  stock_unit?: string;
-
-  // Categorización (ahora son IDs)
-  category_id?: string | null;
-  brand_id?: string | null;
-  tag_ids?: string[]; // Array de IDs de tags
-  // Compatibilidad temporal mientras se completa la migración a IDs
+export interface UpdateProductData
+  extends Partial<
+    Omit<
+      ProductUpdate,
+      | "id"
+      | "org_id"
+      | "created_at"
+      | "updated_at"
+      | "created_by"
+    >
+  > {
+  tag_ids?: string[];
   category?: string | null;
   brand?: string | null;
   tags?: string[];
-
-  // Estado
-  is_active?: boolean;
-
-  // Metadata
-  notes?: string | null;
-  image_url?: string | null;
-  barcode?: string | null;
 }
 
 // =====================================================

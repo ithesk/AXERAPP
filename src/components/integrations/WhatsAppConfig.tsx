@@ -1,24 +1,30 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import Button from "@/components/ui/button/Button";
 import Input from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import { useToast } from "@/context/ToastContext";
 import { useOrganization } from "@/context/OrganizationContext";
+import type {
+  WhatsappSettings,
+  WhatsappSettingsResponse,
+  WhatsappSettingsUpsertInput,
+} from "@/types/whatsapp";
 
-interface WhatsAppSettings {
-  api_url: string;
-  enabled: boolean;
-}
+type WhatsappSettingsApiResponse =
+  | WhatsappSettingsResponse
+  | { error: string; message?: string };
+
+const DEFAULT_API_URL = "http://192.168.2.148:3005/send-message";
 
 export default function WhatsAppConfig() {
   const { showToast } = useToast();
   const { currentOrg } = useOrganization();
 
   // Estado para la configuración
-  const [apiUrl, setApiUrl] = useState("http://192.168.2.148:3005/send-message");
+  const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
   const [enabled, setEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,36 +38,60 @@ export default function WhatsAppConfig() {
   const [sending, setSending] = useState(false);
 
   // Cargar configuración al montar el componente
-  useEffect(() => {
-    loadSettings();
-  }, [currentOrg]);
-
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     if (!currentOrg?.id) return;
 
     try {
       setLoading(true);
+
       const response = await fetch(`/api/whatsapp-settings?org_id=${currentOrg.id}`);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.settings) {
-          const url = data.settings.api_url || "http://192.168.2.148:3005/send-message";
-          setApiUrl(url);
-          setSavedApiUrl(url);
-          setEnabled(data.settings.enabled || false);
-          setIsEditing(false);
-        } else {
-          // No hay configuración guardada, permitir edición
-          setIsEditing(true);
-        }
+      let payload: WhatsappSettingsApiResponse | null = null;
+      try {
+        payload = (await response.json()) as WhatsappSettingsApiResponse;
+      } catch (parseError: unknown) {
+        console.error("Error al parsear configuración de WhatsApp:", parseError);
       }
-    } catch (error) {
+
+      if (!response.ok) {
+        const errorMessage =
+          (payload && "error" in payload && (payload.message ?? payload.error)) ||
+          "No se pudo obtener la configuración de WhatsApp";
+
+        console.error("Error al cargar configuración:", errorMessage);
+        showToast("error", "Error", errorMessage);
+        return;
+      }
+
+      const settings = (payload as WhatsappSettingsResponse | null)?.settings ?? null;
+
+      if (settings) {
+        const url = settings.api_url || DEFAULT_API_URL;
+        setApiUrl(url);
+        setSavedApiUrl(url);
+        setEnabled(Boolean(settings.enabled));
+        setIsEditing(false);
+      } else {
+        setIsEditing(true);
+        setEnabled(false);
+        setApiUrl(DEFAULT_API_URL);
+        setSavedApiUrl("");
+      }
+    } catch (error: unknown) {
       console.error("Error al cargar configuración:", error);
+      showToast(
+        "error",
+        "Error",
+        "Ocurrió un problema al obtener la configuración de WhatsApp"
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentOrg?.id, showToast]);
+
+  useEffect(() => {
+    void loadSettings();
+  }, [loadSettings]);
 
   const handleSaveSettings = async () => {
     if (!currentOrg?.id) {
@@ -69,12 +99,19 @@ export default function WhatsAppConfig() {
       return;
     }
 
-    if (!apiUrl.trim()) {
+    const normalizedUrl = apiUrl.trim();
+    if (!normalizedUrl) {
       showToast("error", "Error", "La URL de la API es requerida");
       return;
     }
 
     setSaving(true);
+
+    const payload: WhatsappSettingsUpsertInput = {
+      org_id: currentOrg.id,
+      api_url: normalizedUrl,
+      enabled,
+    };
 
     try {
       const response = await fetch("/api/whatsapp-settings", {
@@ -82,22 +119,40 @@ export default function WhatsAppConfig() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          org_id: currentOrg.id,
-          api_url: apiUrl,
-          enabled: enabled,
-        }),
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        setSavedApiUrl(apiUrl);
-        setIsEditing(false);
-        showToast("success", "Configuración guardada", "Los cambios se guardaron correctamente");
-      } else {
-        const error = await response.json();
-        showToast("error", "Error al guardar", error.message || "No se pudo guardar la configuración");
+      let responseBody: WhatsappSettingsApiResponse | null = null;
+      try {
+        responseBody = (await response.json()) as WhatsappSettingsApiResponse;
+      } catch (parseError: unknown) {
+        console.error("Error al parsear respuesta de WhatsApp:", parseError);
       }
-    } catch (error) {
+
+      if (!response.ok || !responseBody || "error" in responseBody) {
+        const errorMessage =
+          responseBody && "error" in responseBody
+            ? responseBody.message ?? responseBody.error
+            : "No se pudo guardar la configuración";
+
+        showToast("error", "Error al guardar", errorMessage);
+        return;
+      }
+
+      const settings = responseBody.settings as WhatsappSettings | null;
+      const savedUrl = settings?.api_url || normalizedUrl;
+      const savedEnabled = settings?.enabled ?? enabled;
+
+      setApiUrl(savedUrl);
+      setSavedApiUrl(savedUrl);
+      setEnabled(Boolean(savedEnabled));
+      setIsEditing(false);
+      showToast(
+        "success",
+        "Configuración guardada",
+        "Los cambios se guardaron correctamente"
+      );
+    } catch (error: unknown) {
       console.error("Error al guardar:", error);
       showToast("error", "Error", "Ocurrió un error al guardar la configuración");
     } finally {
@@ -163,9 +218,11 @@ export default function WhatsAppConfig() {
         const error = await response.text();
         showToast("error", "Error al enviar", `No se pudo enviar el mensaje: ${error}`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error al enviar mensaje:", error);
-      showToast("error", "Error de conexión", error.message || "No se pudo conectar con la API");
+      const message =
+        error instanceof Error ? error.message : "No se pudo conectar con la API";
+      showToast("error", "Error de conexión", message);
     } finally {
       setSending(false);
     }

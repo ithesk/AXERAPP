@@ -1,7 +1,14 @@
+import type { Tables, TablesInsert, TablesUpdate } from "@/types/supabase";
+
 export type ContactModule = "entradas" | "ventas" | "compras" | "inventario";
 export type ContactAvailability = "all" | ContactModule;
 
-export const CONTACT_MODULES: ContactModule[] = ["entradas", "ventas", "compras", "inventario"];
+export const CONTACT_MODULES: ContactModule[] = [
+  "entradas",
+  "ventas",
+  "compras",
+  "inventario",
+];
 export const CONTACT_ALL_AVAILABILITY: ContactAvailability = "all";
 
 export const CONTACT_MODULE_LABELS: Record<ContactModule, string> = {
@@ -20,57 +27,54 @@ export interface ContactAddress {
   country?: string | null;
 }
 
-export interface Contact {
-  id: string;
-  org_id: string;
-  name: string;
-  phone: string | null;
-  mobile: string | null;
-  email: string | null;
-  is_client: boolean;
-  is_vendor: boolean;
-  tax_id: string | null;
-  website: string | null;
-  avatar_url: string | null;
-  tags: string[];
+type ContactRow = Tables<"contacts">;
+
+export interface Contact extends ContactRow {
   address: ContactAddress;
   available_in_modules: ContactAvailability[];
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
-  deleted_at: string | null;
 }
 
-export interface CreateContactData {
-  name: string;
-  phone?: string;
-  mobile?: string;
-  email?: string;
-  is_client?: boolean;
-  is_vendor?: boolean;
-  tax_id?: string;
-  website?: string;
-  avatar_url?: string;
-  tags?: string[];
+type ContactInsert = TablesInsert<"contacts">;
+
+export interface CreateContactData
+  extends Omit<
+    ContactInsert,
+    | "id"
+    | "org_id"
+    | "created_at"
+    | "updated_at"
+    | "deleted_at"
+    | "created_by"
+    | "address_line1"
+    | "address_line2"
+    | "address_city"
+    | "address_state"
+    | "address_postal_code"
+    | "address_country"
+  > {
   address?: ContactAddress;
   available_in_modules?: ContactAvailability[];
-  notes?: string;
 }
 
-export interface UpdateContactData {
-  name?: string;
-  phone?: string | null;
-  mobile?: string | null;
-  email?: string | null;
-  is_client?: boolean;
-  is_vendor?: boolean;
-  tax_id?: string | null;
-  website?: string | null;
-  avatar_url?: string | null;
-  tags?: string[];
+type ContactUpdate = TablesUpdate<"contacts">;
+
+export interface UpdateContactData
+  extends Omit<
+    ContactUpdate,
+    | "org_id"
+    | "created_at"
+    | "updated_at"
+    | "deleted_at"
+    | "created_by"
+    | "address_line1"
+    | "address_line2"
+    | "address_city"
+    | "address_state"
+    | "address_postal_code"
+    | "address_country"
+  > {
   address?: ContactAddress;
   available_in_modules?: ContactAvailability[];
-  notes?: string | null;
 }
 
 export interface ContactsFilters {

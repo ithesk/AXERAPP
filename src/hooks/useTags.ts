@@ -91,6 +91,10 @@ export function useTags(): UseTagsReturn {
 
   const updateTag = useCallback(
     async (id: string, data: UpdateTagData) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const updateData: any = {};
 
@@ -102,7 +106,8 @@ export function useTags(): UseTagsReturn {
         const { error: updateError } = await supabase
           .from("tags")
           .update(updateData)
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (updateError) throw updateError;
 
@@ -113,16 +118,21 @@ export function useTags(): UseTagsReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadTags]
+    [supabase, loadTags, currentOrg?.id]
   );
 
   const deleteTag = useCallback(
     async (id: string) => {
+      if (!currentOrg?.id) {
+        return { success: false, error: "No hay organización seleccionada" };
+      }
+
       try {
         const { error: deleteError } = await supabase
           .from("tags")
           .delete()
-          .eq("id", id);
+          .eq("id", id)
+          .eq("org_id", currentOrg.id);
 
         if (deleteError) throw deleteError;
 
@@ -133,7 +143,7 @@ export function useTags(): UseTagsReturn {
         return { success: false, error: err.message };
       }
     },
-    [supabase, loadTags]
+    [supabase, loadTags, currentOrg?.id]
   );
 
   return {

@@ -3,6 +3,10 @@
  * Types for the notification system
  */
 
+import type { Tables, TablesInsert } from "@/types/supabase";
+
+type NotificationRow = Tables<"notifications">;
+
 export type NotificationType =
   | 'entrada_status_change'
   | 'new_sale'
@@ -19,50 +23,21 @@ export type EntityType =
   | 'compra'
   | 'inventario';
 
-export interface Notification {
-  id: string;
-  org_id: string;
-  user_id: string;
-
-  // Content
+export interface Notification
+  extends Omit<NotificationRow, "metadata" | "entity_type"> {
   type: NotificationType;
-  title: string;
-  message: string;
-
-  // Related entity
-  entity_type?: EntityType | null;
-  entity_id?: string | null;
-
-  // Actor
-  actor_id?: string | null;
-  actor_name?: string | null;
-  actor_avatar?: string | null;
-
-  // Metadata
-  metadata: Record<string, any>;
-
-  // Status
-  is_read: boolean;
-  read_at?: string | null;
-
-  // Action
-  action_url?: string | null;
-
-  created_at: string;
-  updated_at: string;
+  entity_type: EntityType | null;
+  metadata: Record<string, unknown>;
 }
 
-export interface CreateNotificationData {
+export interface CreateNotificationData
+  extends Omit<
+    TablesInsert<"notifications">,
+    "id" | "org_id" | "user_id" | "created_at" | "updated_at"
+  > {
   type: NotificationType;
-  title: string;
-  message: string;
   entity_type?: EntityType | null;
-  entity_id?: string | null;
-  actor_id?: string | null;
-  actor_name?: string | null;
-  actor_avatar?: string | null;
-  action_url?: string | null;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export interface NotificationFilters {
