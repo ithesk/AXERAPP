@@ -87,6 +87,7 @@ const navItems: NavItem[] = [
     name: "Configuraciones",
     subItems: [
       { name: "General", path: "/configuraciones", pro: false },
+      { name: "Etiquetas", path: "/configuracion/etiquetas", pro: false, new: true },
       { name: "Problemas Comunes", path: "/configuracion/problemas-comunes", pro: false, new: true },
       {
         name: "Integraciones",
