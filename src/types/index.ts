@@ -101,3 +101,11 @@ export {
   ACTION_LABELS,
   ENTITY_TYPE_LABELS,
 } from './audit';
+
+// Integration Types
+export type {
+  ERPConnection,
+  ERPConnectionFormState,
+  ERPConnectionStatus,
+  ERPAuthType,
+} from './integrations';

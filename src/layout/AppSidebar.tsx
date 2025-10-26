@@ -93,6 +93,7 @@ const navItems: NavItem[] = [
         name: "Integraciones",
         pro: false,
         subItems: [
+          { name: "ERP / Odoo", path: "/configuracion/integraciones/erp", pro: false, new: true },
           { name: "API", path: "/configuracion/integraciones/api", pro: false },
           { name: "Impresoras", path: "/configuracion/integraciones/impresoras", pro: false },
           { name: "Mensajería", path: "/configuracion/integraciones/mensajeria", pro: false },

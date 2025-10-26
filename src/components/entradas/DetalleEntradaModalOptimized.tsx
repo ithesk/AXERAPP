@@ -6,6 +6,7 @@ import Button from "../ui/button/Button";
 import type { Entrada, EstadoEntrada } from "@/types/entradas";
 import { useToast } from "@/context/ToastContext";
 import { PrintLabelButton } from "./PrintLabelButton";
+import { PrintPOSTicketButton } from "./PrintPOSTicketButton";
 
 interface DetalleEntradaModalProps {
   entrada: Entrada;
@@ -148,8 +149,9 @@ export default function DetalleEntradaModal({
                 )}
               </p>
             </div>
-            <div className="mr-2">
+            <div className="flex gap-2 mr-2">
               <PrintLabelButton entrada={entrada} variant="outline" size="sm" />
+              <PrintPOSTicketButton entrada={entrada} variant="outline" size="sm" mode="print" />
             </div>
           </div>
 

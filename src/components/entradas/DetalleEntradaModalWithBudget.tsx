@@ -8,6 +8,7 @@ import { useToast } from "@/context/ToastContext";
 import BudgetManager from "@/components/budgets/BudgetManager";
 import type { BudgetWithItems } from "@/types/budgets";
 import { PrintLabelButton } from "./PrintLabelButton";
+import { PrintPOSTicketButton } from "./PrintPOSTicketButton";
 
 interface DetalleEntradaModalProps {
   entrada: Entrada;
@@ -135,8 +136,9 @@ export default function DetalleEntradaModal({
               </p>
             </div>
             <div className="flex items-center gap-6">
-              <div className="mr-2">
+              <div className="flex gap-2 mr-2">
                 <PrintLabelButton entrada={entrada} variant="outline" size="sm" />
+                <PrintPOSTicketButton entrada={entrada} variant="outline" size="sm" mode="print" />
               </div>
               <button
                 onClick={onClose}
