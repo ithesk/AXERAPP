@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useEntradas } from "@/hooks/useEntradas";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import type { Entrada, EstadoEntrada, EntradasFilters } from "@/types/entradas";
 import NuevaEntradaModal from "@/components/entradas/NuevaEntradaModal";
 import EditarEntradaModal from "@/components/entradas/EditarEntradaModal";
@@ -150,80 +151,81 @@ const getEstadoIcon = (estado: EstadoEntrada) => {
   }
 };
 
-const getEstadoFilterStyle = (estado: EstadoEntrada) => {
-  switch (estado) {
-    case "Cotización":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30",
-        inactiveClass:
-          "bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
-      };
-    case "Inicio reparación":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-500/30",
-        inactiveClass:
-          "bg-violet-100 text-violet-600 hover:bg-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-violet-200 text-violet-700 dark:bg-violet-500/20 dark:text-violet-200",
-      };
-    case "En reparación":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30",
-        inactiveClass:
-          "bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-blue-200 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
-      };
-    case "Reparado":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30",
-        inactiveClass:
-          "bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
-      };
-    case "Entregado":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-lg shadow-slate-500/30",
-        inactiveClass:
-          "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:hover:bg-slate-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
-      };
-    case "Cancelado":
-      return {
-        activeClass:
-          "bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/30",
-        inactiveClass:
-          "bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-rose-200 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200",
-      };
-    default:
-      return {
-        activeClass:
-          "bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/30",
-        inactiveClass:
-          "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700",
-        countActiveClass: "bg-white/20 text-white",
-        countInactiveClass:
-          "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
-      };
-  }
-};
+// Función no utilizada actualmente - puede ser útil para futuras mejoras
+// const getEstadoFilterStyle = (estado: EstadoEntrada) => {
+//   switch (estado) {
+//     case "Cotización":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg shadow-amber-500/30",
+//         inactiveClass:
+//           "bg-amber-100 text-amber-600 hover:bg-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:hover:bg-amber-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-amber-200 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300",
+//       };
+//     case "Inicio reparación":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-lg shadow-violet-500/30",
+//         inactiveClass:
+//           "bg-violet-100 text-violet-600 hover:bg-violet-200 dark:bg-violet-500/10 dark:text-violet-300 dark:hover:bg-violet-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-violet-200 text-violet-700 dark:bg-violet-500/20 dark:text-violet-200",
+//       };
+//     case "En reparación":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30",
+//         inactiveClass:
+//           "bg-blue-100 text-blue-600 hover:bg-blue-200 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-blue-200 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300",
+//       };
+//     case "Reparado":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30",
+//         inactiveClass:
+//           "bg-emerald-100 text-emerald-600 hover:bg-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:hover:bg-emerald-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-emerald-200 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
+//       };
+//     case "Entregado":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-slate-600 to-slate-700 text-white shadow-lg shadow-slate-500/30",
+//         inactiveClass:
+//           "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-500/10 dark:text-slate-300 dark:hover:bg-slate-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-slate-200 text-slate-700 dark:bg-slate-500/20 dark:text-slate-300",
+//       };
+//     case "Cancelado":
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-rose-500 to-rose-600 text-white shadow-lg shadow-rose-500/30",
+//         inactiveClass:
+//           "bg-rose-100 text-rose-600 hover:bg-rose-200 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/20",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-rose-200 text-rose-700 dark:bg-rose-500/20 dark:text-rose-200",
+//       };
+//     default:
+//       return {
+//         activeClass:
+//           "bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg shadow-gray-500/30",
+//         inactiveClass:
+//           "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700",
+//         countActiveClass: "bg-white/20 text-white",
+//         countInactiveClass:
+//           "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300",
+//       };
+//   }
+// };
 
 const getEstadoSummaryStyle = (estado: EstadoEntrada) => {
   switch (estado) {
@@ -290,6 +292,8 @@ type SortField = "fecha" | "cliente" | "id" | "modelo" | "estado" | "problema" |
 type SortOrder = "asc" | "desc" | null;
 
 export default function EntradasPage() {
+  const isMobile = useMediaQuery('(max-width: 1024px)');
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filterEstado, setFilterEstado] = useState<EstadoEntrada | "Todos">("Todos");
   const [filterFechaDesde, setFilterFechaDesde] = useState("");
@@ -306,6 +310,7 @@ export default function EntradasPage() {
   const [estadoMenuOpen, setEstadoMenuOpen] = useState(false);
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const [columnsMenuOpen, setColumnsMenuOpen] = useState(false);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Estado para columnas visibles - inicializar desde localStorage o usar defaults
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnKey>>(() => {
@@ -364,7 +369,7 @@ export default function EntradasPage() {
 
   // Aplicar ordenamiento local
   const sortedEntradas = useMemo(() => {
-    let sorted = [...entradas];
+    const sorted = [...entradas];
 
     if (sortField && sortOrder) {
       sorted.sort((a, b) => {
@@ -768,80 +773,105 @@ export default function EntradasPage() {
                 Limpiar filtros
               </button>
             )}
-            <button
-              onClick={() => setViewMode("table")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "table"
-                  ? "bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400"
-                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              title="Vista de tabla"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </button>
-            <button
-              onClick={() => setViewMode("cards")}
-              className={`p-2 rounded-lg transition-all ${
-                viewMode === "cards"
-                  ? "bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400"
-                  : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-              }`}
-              title="Vista de tarjetas"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-              </svg>
-            </button>
+            {!isMobile && (
+              <>
+                <button
+                  onClick={() => setViewMode("table")}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === "table"
+                      ? "bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400"
+                      : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                  title="Vista de tabla"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => setViewMode("cards")}
+                  className={`p-2 rounded-lg transition-all ${
+                    viewMode === "cards"
+                      ? "bg-brand-100 text-brand-600 dark:bg-brand-500/20 dark:text-brand-400"
+                      : "text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                  title="Vista de tarjetas"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                  </svg>
+                </button>
+              </>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_200px_140px_140px_auto_auto]">
-          {/* Search */}
-          <div>
-            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
-              Búsqueda
-            </label>
-            <div className="relative group">
-              <svg
-                className="absolute w-5 h-5 text-gray-400 transition-colors transform -translate-y-1/2 left-3 top-1/2 group-focus-within:text-brand-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Cliente, teléfono, modelo, ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full py-2.5 pl-10 pr-10 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+        {/* Campo de búsqueda - SIEMPRE visible */}
+        <div className="mb-4">
+          <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+            Búsqueda
+          </label>
+          <div className="relative group">
+            <svg
+              className="absolute w-5 h-5 text-gray-400 transition-colors transform -translate-y-1/2 left-3 top-1/2 group-focus-within:text-brand-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute p-1 text-gray-400 transition-colors transform -translate-y-1/2 rounded-full right-2 top-1/2 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
+            </svg>
+            <input
+              type="text"
+              placeholder="Cliente, teléfono, modelo, ID..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full py-2.5 pl-10 pr-10 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute p-1 text-gray-400 transition-colors transform -translate-y-1/2 rounded-full right-2 top-1/2 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
+        </div>
 
-          {/* Estado Filter - Dropdown */}
-          <div>
-            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
-              Estado
-            </label>
+        {/* Botón colapsable para filtros avanzados en móvil */}
+        {isMobile && (
+          <button
+            onClick={() => setShowMobileFilters(!showMobileFilters)}
+            className="flex items-center justify-between w-full px-4 py-3 mb-4 text-sm font-medium text-gray-700 transition-all border-2 border-gray-200 rounded-xl hover:border-brand-300 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-500"
+          >
+            <span className="flex items-center gap-2">
+              <Filter className="w-4 h-4" />
+              Filtros avanzados
+              {activeFiltersCount > 1 && (
+                <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white rounded-full bg-brand-500">
+                  {activeFiltersCount - 1}
+                </span>
+              )}
+            </span>
+            <ChevronDown className={`w-5 h-5 transition-transform ${showMobileFilters ? "rotate-180" : ""}`} />
+          </button>
+        )}
+
+        {/* Filtros avanzados - colapsables en móvil, siempre visibles en desktop */}
+        <div className={`space-y-4 ${isMobile && !showMobileFilters ? "hidden" : ""}`}>
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[200px_140px_140px_auto_auto]">
+            {/* Estado Filter - Dropdown */}
+            <div>
+              <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+                Estado
+              </label>
             <div className="relative" ref={estadoMenuRef}>
               <button
                 type="button"
@@ -907,21 +937,21 @@ export default function EntradasPage() {
             />
           </div>
 
-          {/* Fecha Hasta */}
-          <div>
-            <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
-              Hasta
-            </label>
-            <input
-              type="date"
-              value={filterFechaHasta}
-              onChange={(e) => setFilterFechaHasta(e.target.value)}
-              className="w-full py-2.5 px-3 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
-            />
-          </div>
+            {/* Fecha Hasta */}
+            <div>
+              <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
+                Hasta
+              </label>
+              <input
+                type="date"
+                value={filterFechaHasta}
+                onChange={(e) => setFilterFechaHasta(e.target.value)}
+                className="w-full py-2.5 px-3 text-sm border-2 border-gray-200 rounded-xl dark:border-gray-700 dark:bg-gray-900 dark:text-white focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 transition-all"
+              />
+            </div>
 
-          {/* Columnas */}
-          <div>
+            {/* Columnas */}
+            <div>
             <label className="block mb-2 text-xs font-semibold text-gray-600 uppercase dark:text-gray-400">
               Columnas
             </label>
@@ -1106,6 +1136,7 @@ export default function EntradasPage() {
               )}
             </div>
           </div>
+          </div>
         </div>
       </div>
 
@@ -1157,8 +1188,99 @@ export default function EntradasPage() {
             {activeFiltersCount > 0 ? "Nueva Entrada" : "Crear primera entrada"}
           </button>
         </div>
-      ) : viewMode === "table" ? (
-        /* Table View */
+      ) : (isMobile || viewMode === "cards") ? (
+        /* Cards View - Forzada en móvil, opcional en desktop */
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {sortedEntradas.map((entrada) => (
+            <div
+              key={entrada.id}
+              onClick={() => setDetalleEntrada(entrada)}
+              className="p-5 transition-all border border-gray-200 rounded-2xl bg-white dark:border-gray-800 dark:bg-white/[0.03] hover:shadow-xl hover:scale-105 cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="mb-1 font-mono text-xs font-semibold text-brand-600 dark:text-brand-400">
+                    {entrada.id_reparacion}
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                    {entrada.nombre_cliente}
+                  </h3>
+                </div>
+                <span
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg ${getEstadoBadgeClass(
+                    entrada.estado
+                  )}`}
+                >
+                  {getEstadoIcon(entrada.estado)}
+                  {entrada.estado}
+                </span>
+              </div>
+
+              <div className="space-y-2 mb-4">
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                  </svg>
+                  {entrada.telefono}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  {entrada.modelo}
+                </div>
+                <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <svg className="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="line-clamp-2">{entrada.problema}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  {formatDateShort(entrada.fecha_entrada)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingEntrada(entrada);
+                    }}
+                    className="p-2 text-blue-600 transition-all rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                    title="Editar"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDelete(entrada.id);
+                    }}
+                    disabled={deletingId === entrada.id}
+                    className="p-2 text-red-600 transition-all rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50"
+                    title="Eliminar"
+                  >
+                    {deletingId === entrada.id ? (
+                      <div className="w-4 h-4 border-2 border-t-transparent border-red-600 rounded-full animate-spin"></div>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        /* Table View - Solo en desktop */
         <div className="border border-gray-200 rounded-2xl bg-white dark:border-gray-800 dark:bg-white/[0.03] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -1255,97 +1377,6 @@ export default function EntradasPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      ) : (
-        /* Cards View */
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {sortedEntradas.map((entrada) => (
-            <div
-              key={entrada.id}
-              onClick={() => setDetalleEntrada(entrada)}
-              className="p-5 transition-all border border-gray-200 rounded-2xl bg-white dark:border-gray-800 dark:bg-white/[0.03] hover:shadow-xl hover:scale-105 cursor-pointer"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="mb-1 font-mono text-xs font-semibold text-brand-600 dark:text-brand-400">
-                    {entrada.id_reparacion}
-                  </div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                    {entrada.nombre_cliente}
-                  </h3>
-                </div>
-                <span
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg ${getEstadoBadgeClass(
-                    entrada.estado
-                  )}`}
-                >
-                  {getEstadoIcon(entrada.estado)}
-                  {entrada.estado}
-                </span>
-              </div>
-
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                  </svg>
-                  {entrada.telefono}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  {entrada.modelo}
-                </div>
-                <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                  <svg className="w-4 h-4 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="line-clamp-2">{entrada.problema}</span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-800">
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  {formatDateShort(entrada.fecha_entrada)}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEditingEntrada(entrada);
-                    }}
-                    className="p-2 text-blue-600 transition-all rounded-lg hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
-                    title="Editar"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDelete(entrada.id);
-                    }}
-                    disabled={deletingId === entrada.id}
-                    className="p-2 text-red-600 transition-all rounded-lg hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 disabled:opacity-50"
-                    title="Eliminar"
-                  >
-                    {deletingId === entrada.id ? (
-                      <div className="w-4 h-4 border-2 border-t-transparent border-red-600 rounded-full animate-spin"></div>
-                    ) : (
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
         </div>
       )}
 

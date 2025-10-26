@@ -5,6 +5,7 @@ import type { BudgetItem, BudgetItemType } from "@/types/budgets";
 import type { Product, CreateProductData } from "@/types/products";
 import { useProducts } from "@/hooks/useProducts";
 import { useToast } from "@/context/ToastContext";
+import { useMediaQuery } from "@/hooks/useMediaQuery";
 import EditableCell from "./EditableCell";
 import ProductCell from "./ProductCell";
 import ProductModal from "@/components/products/ProductModal";
@@ -29,6 +30,7 @@ export default function BudgetItemsTable({
 }: BudgetItemsTableProps) {
   const { products, loading: productsLoading, createProduct } = useProducts();
   const { showToast } = useToast();
+  const isMobile = useMediaQuery('(max-width: 768px)');
 
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [productModalInitialName, setProductModalInitialName] = useState("");
@@ -216,64 +218,29 @@ export default function BudgetItemsTable({
 
   return (
     <div className="space-y-4">
-      {/* Tabla */}
-      <div className="overflow-x-auto border border-gray-200 rounded-lg dark:border-gray-800">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
-            <tr>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-10">
-                #
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 min-w-[250px]">
-                Producto / Descripción
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
-                Tipo
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
-                Cantidad
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-32">
-                Precio Unit.
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
-                Desc. %
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
-                IVA %
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-32">
-                Subtotal
-              </th>
-              <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 w-16">
+      {/* Vista móvil - Cards */}
+      {isMobile ? (
+        <div className="space-y-4">
+          {items.length === 0 ? (
+            <div className="px-4 py-12 text-center text-sm text-gray-500 dark:text-gray-400 border border-gray-200 rounded-lg dark:border-gray-800">
+              No hay items en el presupuesto. Haz clic en "Agregar Item" para comenzar.
+            </div>
+          ) : (
+            items.map((item, index) => {
+              const stockWarning = getStockWarning(item);
 
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-white/[0.03]">
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="px-3 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
-                  No hay items en el presupuesto. Haz clic en "Agregar Item" para comenzar.
-                </td>
-              </tr>
-            ) : (
-              items.map((item, index) => {
-                const stockWarning = getStockWarning(item);
-
-                return (
-                  <tr
-                    key={item.id || index}
-                    className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
-                  >
-                    {/* # */}
-                    <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
-                      {index + 1}
-                    </td>
-
-                    {/* Producto / Descripción */}
-                    <td className="px-3 py-2">
-                      <div className="space-y-1">
+              return (
+                <div
+                  key={item.id || index}
+                  className="border border-gray-200 rounded-lg dark:border-gray-800 bg-white dark:bg-white/[0.03] overflow-hidden"
+                >
+                  {/* Header del card */}
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">
+                        #{index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
                         <ProductCell
                           value={item.description}
                           selectedProduct={item.product || null}
@@ -286,123 +253,336 @@ export default function BudgetItemsTable({
                           }
                           disabled={disabled}
                         />
-                        {stockWarning && (
-                          <p className="text-xs text-amber-600 dark:text-amber-400 px-2">
-                            ⚠️ {stockWarning}
-                          </p>
-                        )}
                       </div>
-                    </td>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteRow(index)}
+                      disabled={disabled}
+                      className="p-2 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                      title="Eliminar item"
+                    >
+                      <TrashBinIcon className="w-4 h-4" />
+                    </button>
+                  </div>
 
+                  {/* Contenido del card */}
+                  <div className="p-4 space-y-3">
                     {/* Tipo */}
-                    <td className="px-3 py-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Tipo de item
+                      </label>
                       <select
                         value={item.item_type}
                         onChange={(e) =>
                           handleUpdateItem(index, "item_type", e.target.value as BudgetItemType)
                         }
                         disabled={disabled || !item.is_custom}
-                        className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded bg-white dark:bg-gray-900 dark:border-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white dark:bg-gray-900 dark:border-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <option value="part">Pieza</option>
                         <option value="labor">Servicio</option>
                       </select>
-                    </td>
+                    </div>
 
-                    {/* Cantidad */}
-                    <td className="px-3 py-2">
-                      <EditableCell
-                        value={item.quantity}
-                        onChange={(value) =>
-                          handleUpdateItem(index, "quantity", parseFloat(value.toString()) || 0)
-                        }
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        disabled={disabled}
-                        className="text-right"
-                      />
-                    </td>
+                    {/* Grid de Cantidad y Precio Unitario */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Cantidad
+                        </label>
+                        <EditableCell
+                          value={item.quantity}
+                          onChange={(value) =>
+                            handleUpdateItem(index, "quantity", parseFloat(value.toString()) || 0)
+                          }
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Precio Unit.
+                        </label>
+                        <EditableCell
+                          value={item.unit_price}
+                          onChange={(value) =>
+                            handleUpdateItem(index, "unit_price", parseFloat(value.toString()) || 0)
+                          }
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </div>
+                    </div>
 
-                    {/* Precio Unitario */}
-                    <td className="px-3 py-2">
-                      <EditableCell
-                        value={item.unit_price}
-                        onChange={(value) =>
-                          handleUpdateItem(index, "unit_price", parseFloat(value.toString()) || 0)
-                        }
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        disabled={disabled}
-                        className="text-right"
-                      />
-                    </td>
+                    {/* Grid de Descuento e IVA */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Descuento %
+                        </label>
+                        <EditableCell
+                          value={item.discount_percentage ?? 0}
+                          onChange={(value) =>
+                            handleUpdateItem(
+                              index,
+                              "discount_percentage",
+                              parseFloat(value.toString()) || 0
+                            )
+                          }
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          IVA %
+                        </label>
+                        <EditableCell
+                          value={item.tax_percentage ?? 0}
+                          onChange={(value) =>
+                            handleUpdateItem(
+                              index,
+                              "tax_percentage",
+                              parseFloat(value.toString()) || 0
+                            )
+                          }
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </div>
+                    </div>
 
-                    {/* Descuento % */}
-                    <td className="px-3 py-2">
-                      <EditableCell
-                        value={item.discount_percentage ?? 0}
-                        onChange={(value) =>
-                          handleUpdateItem(
-                            index,
-                            "discount_percentage",
-                            parseFloat(value.toString()) || 0
-                          )
-                        }
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        disabled={disabled}
-                        className="text-right"
-                      />
-                    </td>
+                    {/* Subtotal destacado */}
+                    <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          Subtotal:
+                        </span>
+                        <span className="text-lg font-bold text-brand-600 dark:text-brand-400">
+                          {formatPrice(item.subtotal)}
+                        </span>
+                      </div>
+                    </div>
 
-                    {/* IVA % */}
-                    <td className="px-3 py-2">
-                      <EditableCell
-                        value={item.tax_percentage ?? 0}
-                        onChange={(value) =>
-                          handleUpdateItem(
-                            index,
-                            "tax_percentage",
-                            parseFloat(value.toString()) || 0
-                          )
-                        }
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        disabled={disabled}
-                        className="text-right"
-                      />
-                    </td>
+                    {/* Advertencia de stock */}
+                    {stockWarning && (
+                      <div className="p-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-lg">
+                        <p className="text-xs text-amber-600 dark:text-amber-400">
+                          ⚠️ {stockWarning}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : (
+        /* Vista desktop - Tabla */
+        <div className="overflow-x-auto border border-gray-200 rounded-lg dark:border-gray-800">
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-10">
+                  #
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 min-w-[250px]">
+                  Producto / Descripción
+                </th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
+                  Tipo
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
+                  Cantidad
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-32">
+                  Precio Unit.
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
+                  Desc. %
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-24">
+                  IVA %
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-gray-600 dark:text-gray-300 w-32">
+                  Subtotal
+                </th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-gray-600 dark:text-gray-300 w-16">
 
-                    {/* Subtotal */}
-                    <td className="px-3 py-2 text-right text-sm font-semibold text-gray-800 dark:text-white/90">
-                      {formatPrice(item.subtotal)}
-                    </td>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-white/[0.03]">
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-3 py-12 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No hay items en el presupuesto. Haz clic en "Agregar Item" para comenzar.
+                  </td>
+                </tr>
+              ) : (
+                items.map((item, index) => {
+                  const stockWarning = getStockWarning(item);
 
-                    {/* Acciones */}
-                    <td className="px-3 py-2 text-center">
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteRow(index)}
-                        disabled={disabled}
-                        className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Eliminar item"
-                      >
-                        <TrashBinIcon className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                  return (
+                    <tr
+                      key={item.id || index}
+                      className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
+                    >
+                      {/* # */}
+                      <td className="px-3 py-2 text-gray-500 dark:text-gray-400">
+                        {index + 1}
+                      </td>
+
+                      {/* Producto / Descripción */}
+                      <td className="px-3 py-2">
+                        <div className="space-y-1">
+                          <ProductCell
+                            value={item.description}
+                            selectedProduct={item.product || null}
+                            products={products}
+                            loading={productsLoading}
+                            onChange={(value) => handleUpdateItem(index, "description", value)}
+                            onProductSelect={(product) => handleProductSelect(index, product)}
+                            onCreateClick={() =>
+                              handleOpenProductModal(index, item.description)
+                            }
+                            disabled={disabled}
+                          />
+                          {stockWarning && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 px-2">
+                              ⚠️ {stockWarning}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Tipo */}
+                      <td className="px-3 py-2">
+                        <select
+                          value={item.item_type}
+                          onChange={(e) =>
+                            handleUpdateItem(index, "item_type", e.target.value as BudgetItemType)
+                          }
+                          disabled={disabled || !item.is_custom}
+                          className="w-full px-2 py-1.5 text-sm border border-gray-200 rounded bg-white dark:bg-gray-900 dark:border-gray-800 dark:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <option value="part">Pieza</option>
+                          <option value="labor">Servicio</option>
+                        </select>
+                      </td>
+
+                      {/* Cantidad */}
+                      <td className="px-3 py-2">
+                        <EditableCell
+                          value={item.quantity}
+                          onChange={(value) =>
+                            handleUpdateItem(index, "quantity", parseFloat(value.toString()) || 0)
+                          }
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </td>
+
+                      {/* Precio Unitario */}
+                      <td className="px-3 py-2">
+                        <EditableCell
+                          value={item.unit_price}
+                          onChange={(value) =>
+                            handleUpdateItem(index, "unit_price", parseFloat(value.toString()) || 0)
+                          }
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </td>
+
+                      {/* Descuento % */}
+                      <td className="px-3 py-2">
+                        <EditableCell
+                          value={item.discount_percentage ?? 0}
+                          onChange={(value) =>
+                            handleUpdateItem(
+                              index,
+                              "discount_percentage",
+                              parseFloat(value.toString()) || 0
+                            )
+                          }
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </td>
+
+                      {/* IVA % */}
+                      <td className="px-3 py-2">
+                        <EditableCell
+                          value={item.tax_percentage ?? 0}
+                          onChange={(value) =>
+                            handleUpdateItem(
+                              index,
+                              "tax_percentage",
+                              parseFloat(value.toString()) || 0
+                            )
+                          }
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={0.01}
+                          disabled={disabled}
+                          className="text-right"
+                        />
+                      </td>
+
+                      {/* Subtotal */}
+                      <td className="px-3 py-2 text-right text-sm font-semibold text-gray-800 dark:text-white/90">
+                        {formatPrice(item.subtotal)}
+                      </td>
+
+                      {/* Acciones */}
+                      <td className="px-3 py-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteRow(index)}
+                          disabled={disabled}
+                          className="p-1.5 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Eliminar item"
+                        >
+                          <TrashBinIcon className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Botón Agregar Item */}
       <div>
